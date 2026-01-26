@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@react-three/drei';
 
-const Tray = ({ width, depth, height, rows = 1, cols = 1, color = '#7E7E7E' }) => {
+const Tray = ({ width, depth, height, horizontalDividers = [], verticalDividers = [], color = '#7E7E7E' }) => {
   // Convert mm to meters (Three.js units) - for better scene scale we divide by 100
   const w = width / 100;
   const d = depth / 100;
@@ -32,22 +32,32 @@ const Tray = ({ width, depth, height, rows = 1, cols = 1, color = '#7E7E7E' }) =
       </Box>
 
       {/* Internal Dividers - Horizontal */}
-      {Array.from({ length: rows - 1 }).map((_, i) => {
-        const spacing = d / rows;
-        const zPos = -d / 2 + spacing * (i + 1);
+      {/* Internal Dividers - Horizontal (Varies along Z) */}
+      {horizontalDividers.map((pos, i) => {
+        // pos is in mm. Convert to scene units (/100).
+        // Assuming pos is distance from the "back" (-d/2) for now to match previous logic logic structure
+        // If "From Front", we might need to invert: z = d/2 - (pos/100)
+        // Let's assume input is "from Front" (positive Z) implies starting at d/2 and going back.
+        // But let's check standard UI sliders. Usually 0 is left/top.
+        // Let's try: zPos = d/2 - (pos / 100). 
+        // If pos=50mm, it's near the front.
+
+        const zPos = d / 2 - (pos / 100);
         return (
-          <Box key={`row-${i}`} args={[w - thickness * 2, h * 0.8, thickness]} position={[0, -h * 0.1, zPos]}>
+          <Box key={`h-div-${i}`} args={[w - thickness * 2, h * 0.8, thickness]} position={[0, -h * 0.1, zPos]}>
             <meshStandardMaterial color={color} roughness={0.8} metalness={0.2} />
           </Box>
         );
       })}
 
       {/* Internal Dividers - Vertical */}
-      {Array.from({ length: cols - 1 }).map((_, i) => {
-        const spacing = w / cols;
-        const xPos = -w / 2 + spacing * (i + 1);
+      {/* Internal Dividers - Vertical (Varies along X) */}
+      {verticalDividers.map((pos, i) => {
+        // vertical dividers: positions from left (-w/2).
+        // xPos = -w/2 + (pos / 100).
+        const xPos = -w / 2 + (pos / 100);
         return (
-          <Box key={`col-${i}`} args={[thickness, h * 0.8, d - thickness * 2]} position={[xPos, -h * 0.1, 0]}>
+          <Box key={`v-div-${i}`} args={[thickness, h * 0.8, d - thickness * 2]} position={[xPos, -h * 0.1, 0]}>
             <meshStandardMaterial color={color} roughness={0.8} metalness={0.2} />
           </Box>
         );

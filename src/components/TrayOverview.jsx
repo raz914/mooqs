@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Edit3, Download, Plus, Minus } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
-const TrayOverview = ({ setShowOverview }) => {
+const TrayOverview = ({ setShowOverview, selectedColor, onRequestQuote }) => {
     const [quantity, setQuantity] = useState(1);
     const { t } = useLanguage();
 
@@ -11,7 +11,7 @@ const TrayOverview = ({ setShowOverview }) => {
         { label: t('dividers'), value: t('yesAdjustedSpc') },
         { label: t('modules'), value: t('earringsRings') },
         { label: t('material'), value: t('wood') },
-        { label: t('color'), value: t('black') },
+        { label: t('color'), value: selectedColor ? selectedColor.name : t('black') },
     ];
 
     return (
@@ -63,7 +63,10 @@ const TrayOverview = ({ setShowOverview }) => {
                 <div className="flex-1 min-h-[40px]"></div>
 
                 <div className="space-y-3">
-                    <button className="w-full bg-white text-black font-semibold py-4 rounded-full flex items-center justify-center gap-3 text-[16px] hover:bg-white/90 transition-colors">
+                    <button
+                        onClick={onRequestQuote}
+                        className="w-full bg-white text-black font-semibold py-4 rounded-full flex items-center justify-center gap-3 text-[16px] hover:bg-white/90 transition-colors"
+                    >
                         <FileText size={20} /> {t('requestQuote')}
                     </button>
 

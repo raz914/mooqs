@@ -6,6 +6,7 @@ import TrayOverview from './components/TrayOverview';
 import TopBar from './components/TopBar';
 import Tray from './components/Tray';
 import CanvasControls from './components/CanvasControls';
+import ScreenshotHandler from './components/ScreenshotHandler';
 
 function App() {
   const [dimensions, setDimensions] = useState({
@@ -14,6 +15,8 @@ function App() {
     height: 100,
     rows: 2,
     cols: 3,
+    horizontalDividers: [300],
+    verticalDividers: [333, 666],
   });
 
   const [viewMode, setViewMode] = useState('3d');
@@ -32,6 +35,18 @@ function App() {
   ];
   const [selectedColor, setSelectedColor] = useState(colors[2]);
 
+  const screenshotHandlerRef = React.useRef(null);
+
+  const handleRequestQuote = () => {
+    console.log("Request Quote Clicked");
+    if (screenshotHandlerRef.current) {
+      console.log("Calling screenshot handler...");
+      screenshotHandlerRef.current.capture();
+    } else {
+      console.error("Screenshot handler ref is null");
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen w-full bg-[#111111] overflow-hidden font-sans text-white">
       <TopBar />
@@ -39,7 +54,11 @@ function App() {
       <div className="flex flex-1 overflow-hidden relative">
         <div className="w-[400px] overflow-y-auto shrink-0 border-r border-white/10 no-scrollbar">
           {showOverview ? (
-            <TrayOverview setShowOverview={setShowOverview} />
+            <TrayOverview
+              setShowOverview={setShowOverview}
+              selectedColor={selectedColor}
+              onRequestQuote={handleRequestQuote}
+            />
           ) : (
             <Sidebar
               dimensions={dimensions}
@@ -48,12 +67,13 @@ function App() {
               colors={colors}
               selectedColor={selectedColor}
               setSelectedColor={setSelectedColor}
+              onRequestQuote={handleRequestQuote}
             />
           )}
         </div>
 
         <main className="flex-1 relative bg-[#0a0a0a]">
-          <Canvas shadows>
+          <Canvas shadows gl={{ preserveDrawingBuffer: true }}>
             <Suspense fallback={null}>
               <PerspectiveCamera
                 makeDefault
@@ -80,6 +100,8 @@ function App() {
                   height={dimensions.height}
                   rows={dimensions.rows}
                   cols={dimensions.cols}
+                  horizontalDividers={dimensions.horizontalDividers}
+                  verticalDividers={dimensions.verticalDividers}
                   color={selectedColor?.hex || '#7E7E7E'}
                 />
               </group>
@@ -108,6 +130,7 @@ function App() {
               />
 
               <Environment preset="city" />
+              <ScreenshotHandler onRegister={(handler) => (screenshotHandlerRef.current = handler)} />
             </Suspense>
           </Canvas>
 

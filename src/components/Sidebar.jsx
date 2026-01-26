@@ -2,10 +2,23 @@ import React from 'react';
 import { ChevronDown, Plus, Trash2, FileText, Maximize, RotateCcw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
-const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor }) => {
+const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor, onRequestQuote }) => {
     const { t } = useLanguage();
     const handleChange = (key, value) => {
-        setDimensions(prev => ({ ...prev, [key]: parseInt(value) }));
+        const val = parseInt(value);
+        if (key === 'rows') {
+            const count = val - 1;
+            const spacing = dimensions.depth / val;
+            const newDividers = Array.from({ length: count }, (_, i) => Math.round((i + 1) * spacing));
+            setDimensions(prev => ({ ...prev, [key]: val, horizontalDividers: newDividers }));
+        } else if (key === 'cols') {
+            const count = val - 1;
+            const spacing = dimensions.width / val;
+            const newDividers = Array.from({ length: count }, (_, i) => Math.round((i + 1) * spacing));
+            setDimensions(prev => ({ ...prev, [key]: val, verticalDividers: newDividers }));
+        } else {
+            setDimensions(prev => ({ ...prev, [key]: val }));
+        }
     };
 
     return (
@@ -78,30 +91,62 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                 <section>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/50">{t('horizontalDividers')}</h3>
-                        <button className="p-1 bg-white rounded-sm"><Plus size={14} className="text-black" /></button>
+                        <button
+                            onClick={() => {
+                                setDimensions(prev => ({
+                                    ...prev,
+                                    horizontalDividers: [...(prev.horizontalDividers || []), prev.depth / 2]
+                                }));
+                            }}
+                            className="p-1 bg-white rounded-sm hover:bg-white/90 transition-colors"
+                        >
+                            <Plus size={14} className="text-black" />
+                        </button>
                     </div>
 
                     <div className="bg-black p-4">
-                        {['01', '02'].map((id, index) => (
-                            <div key={id} className={index !== 0 ? "mt-6 pt-6 border-t border-white/5" : ""}>
+                        {(dimensions.horizontalDividers || []).map((pos, index) => (
+                            <div key={index} className={index !== 0 ? "mt-6 pt-6 border-t border-white/5" : ""}>
                                 <div className="flex justify-between items-center mb-4">
-                                    <span className="text-[15px] font-normal text-white/90">{t('yDivider')} {id}</span>
+                                    <span className="text-[15px] font-normal text-white/90">{t('yDivider')} {(index + 1).toString().padStart(2, '0')}</span>
                                     <div className="flex items-center gap-3">
-                                        <Trash2 size={16} className="text-white/30 cursor-pointer hover:text-white/50 transition-colors" />
+                                        <Trash2
+                                            size={16}
+                                            className="text-white/30 cursor-pointer hover:text-white/50 transition-colors"
+                                            onClick={() => {
+                                                setDimensions(prev => ({
+                                                    ...prev,
+                                                    horizontalDividers: prev.horizontalDividers.filter((_, i) => i !== index)
+                                                }));
+                                            }}
+                                        />
                                         <div className="bg-[#1a1a1a] px-3 py-1 rounded border border-white/10 text-[13px] font-medium min-w-[50px] text-center">
-                                            50mm
+                                            {pos}mm
                                         </div>
                                     </div>
                                 </div>
                                 <input
                                     type="range"
+                                    min={0}
+                                    max={dimensions.depth}
+                                    value={pos}
+                                    onChange={(e) => {
+                                        const newVal = parseInt(e.target.value);
+                                        setDimensions(prev => {
+                                            const newDividers = [...prev.horizontalDividers];
+                                            newDividers[index] = newVal;
+                                            return { ...prev, horizontalDividers: newDividers };
+                                        });
+                                    }}
                                     className="custom-range"
-                                    defaultValue={50}
-                                    style={{ '--range-progress': '50%' }}
+                                    style={{ '--range-progress': `${(pos / dimensions.depth) * 100}%` }}
                                 />
                                 <p className="text-[12px] text-white/30 mt-3 font-normal">{t('fromFront')}</p>
                             </div>
                         ))}
+                        {(dimensions.horizontalDividers || []).length === 0 && (
+                            <p className="text-[12px] text-white/30 text-center py-2 italic">No horizontal dividers</p>
+                        )}
                     </div>
                 </section>
 
@@ -111,23 +156,59 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                 <section>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/50">{t('verticalDividers')}</h3>
-                        <button className="p-1 bg-white rounded-sm"><Plus size={14} className="text-black" /></button>
+                        <button
+                            onClick={() => {
+                                setDimensions(prev => ({
+                                    ...prev,
+                                    verticalDividers: [...(prev.verticalDividers || []), prev.width / 2]
+                                }));
+                            }}
+                            className="p-1 bg-white rounded-sm hover:bg-white/90 transition-colors"
+                        >
+                            <Plus size={14} className="text-black" />
+                        </button>
                     </div>
-                    <div className="bg-black p-3 rounded border border-white/5">
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="text-[11px] text-white/70">{t('xDivider')} 01</span>
-                            <div className="flex gap-2">
-                                <Trash2 size={12} className="text-white/30" />
-                                <div className="bg-white/10 px-2 py-0.5 rounded text-[10px] ">50mm</div>
+                    <div className="bg-black p-4">
+                        {(dimensions.verticalDividers || []).map((pos, index) => (
+                            <div key={index} className={index !== 0 ? "mt-6 pt-6 border-t border-white/5" : ""}>
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-[11px] text-white/70">{t('xDivider')} {(index + 1).toString().padStart(2, '0')}</span>
+                                    <div className="flex gap-2">
+                                        <Trash2
+                                            size={12}
+                                            className="text-white/30 cursor-pointer hover:text-white/50 transition-colors"
+                                            onClick={() => {
+                                                setDimensions(prev => ({
+                                                    ...prev,
+                                                    verticalDividers: prev.verticalDividers.filter((_, i) => i !== index)
+                                                }));
+                                            }}
+                                        />
+                                        <div className="bg-white/10 px-2 py-0.5 rounded text-[10px] ">{pos}mm</div>
+                                    </div>
+                                </div>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={dimensions.width}
+                                    value={pos}
+                                    onChange={(e) => {
+                                        const newVal = parseInt(e.target.value);
+                                        setDimensions(prev => {
+                                            const newDividers = [...prev.verticalDividers];
+                                            newDividers[index] = newVal;
+                                            return { ...prev, verticalDividers: newDividers };
+                                        });
+                                    }}
+                                    className="custom-range"
+                                    style={{ '--range-progress': `${(pos / dimensions.width) * 100}%` }}
+                                />
+                                <p className="text-[11px] text-white/30 mt-2">{t('fromLeft')}</p>
                             </div>
-                        </div>
-                        <input
-                            type="range"
-                            className="custom-range"
-                            defaultValue={50}
-                            style={{ '--range-progress': '50%' }}
-                        />
-                        <p className="text-[11px] text-white/30 mt-2">{t('fromLeft')}</p>
+                        ))}
+                        {(dimensions.verticalDividers || []).length === 0 && (
+                            <p className="text-[12px] text-white/30 text-center py-2 italic">No vertical dividers</p>
+                        )}
                     </div>
                 </section>
 
@@ -188,7 +269,10 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                 {/* Request Quote Button */}
                 <div className="mt-8">
                     <button
-                        onClick={() => setShowOverview(true)}
+                        onClick={() => {
+                            onRequestQuote();
+                            setShowOverview(true);
+                        }}
                         className="w-full bg-white text-black font-semibold py-4 rounded-full flex items-center justify-center gap-3 text-[18px] hover:bg-white/90 transition-colors"
                     >
                         <FileText size={24} /> {t('requestQuote')}
