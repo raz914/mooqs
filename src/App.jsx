@@ -84,8 +84,8 @@ function App() {
               <OrbitControls
                 enableDamping
                 dampingFactor={0.05}
-                minPolarAngle={viewMode === '3d' ? 0 : Math.PI / 2}
-                maxPolarAngle={viewMode === '3d' ? Math.PI / 1.5 : Math.PI / 2}
+                minPolarAngle={viewMode === '3d' ? 0 : 0}
+                maxPolarAngle={viewMode === '3d' ? Math.PI / 1.5 : 0}
                 enableRotate={viewMode === '3d'}
               />
 
