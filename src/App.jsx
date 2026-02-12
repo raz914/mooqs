@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid, Environment, ContactShadows } from '@react-three/drei';
 import Sidebar from './components/Sidebar';
@@ -7,6 +7,9 @@ import TopBar from './components/TopBar';
 import Tray from './components/Tray';
 import CanvasControls from './components/CanvasControls';
 import ScreenshotHandler from './components/ScreenshotHandler';
+import ModuleSelector from './components/ModuleSelector';
+import TrayDropHandler from './components/TrayDropHandler';
+import { useDragDrop } from './hooks/useDragDrop';
 
 function App() {
   const [dimensions, setDimensions] = useState({
@@ -21,6 +24,8 @@ function App() {
 
   const [viewMode, setViewMode] = useState('3d');
   const [showOverview, setShowOverview] = useState(false);
+  const [showModuleSelector, setShowModuleSelector] = useState(false);
+
   const colors = [
     { name: 'Red', hex: '#ef4444', class: 'bg-red-500' },
     { name: 'Pink', hex: '#ec4899', class: 'bg-pink-500' },
@@ -35,17 +40,51 @@ function App() {
   ];
   const [selectedColor, setSelectedColor] = useState(colors[2]);
 
-  const screenshotHandlerRef = React.useRef(null);
+  const screenshotHandlerRef = useRef(null);
+
+  // Use the drag/drop hook
+  const {
+    draggedModule,
+    placedModules,
+    getCells,
+    moduleFitsInCell,
+    isCellOccupied,
+    placeModuleInCell,
+    handleDragStart,
+    handleDragEnd,
+  } = useDragDrop({
+    dimensions,
+    onModulePlaced: (mod) => {
+      console.log('Module placed:', mod.name, 'in cell', mod.cellKey);
+      setShowModuleSelector(false);
+    }
+  });
 
   const handleRequestQuote = () => {
-    console.log("Request Quote Clicked");
     if (screenshotHandlerRef.current) {
-      console.log("Calling screenshot handler...");
       screenshotHandlerRef.current.capture();
-    } else {
-      console.error("Screenshot handler ref is null");
     }
   };
+
+  // Handle drop on a specific cell (from 3D raycasting)
+  const handleCellDrop = (moduleData, cell) => {
+    if (!cell) return;
+
+    if (!moduleFitsInCell(moduleData, cell)) {
+      alert(`Module (${moduleData.width}x${moduleData.depth}mm) doesn't fit in this cell (${Math.round(cell.width)}x${Math.round(cell.depth)}mm)`);
+      return;
+    }
+
+    if (isCellOccupied(cell.key)) {
+      alert('This cell already has a module!');
+      return;
+    }
+
+    placeModuleInCell(moduleData, cell);
+    handleDragEnd();
+  };
+
+  const cells = getCells();
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#111111] overflow-hidden font-sans text-white">
@@ -68,9 +107,22 @@ function App() {
               selectedColor={selectedColor}
               setSelectedColor={setSelectedColor}
               onRequestQuote={handleRequestQuote}
+              showModuleSelector={showModuleSelector}
+              setShowModuleSelector={setShowModuleSelector}
             />
           )}
         </div>
+
+        {showModuleSelector && (
+          <ModuleSelector
+            onClose={() => setShowModuleSelector(false)}
+            onSelect={(mod) => {
+              console.log('Selected module:', mod);
+              setShowModuleSelector(false);
+            }}
+            onDragStart={handleDragStart}
+          />
+        )}
 
         <main className="flex-1 relative bg-[#0a0a0a]">
           <Canvas shadows gl={{ preserveDrawingBuffer: true }}>
@@ -103,6 +155,16 @@ function App() {
                   horizontalDividers={dimensions.horizontalDividers}
                   verticalDividers={dimensions.verticalDividers}
                   color={selectedColor?.hex || '#7E7E7E'}
+                  placedModules={placedModules}
+                />
+
+                {/* 3D Drop Handler for accurate cell detection */}
+                <TrayDropHandler
+                  dimensions={dimensions}
+                  cells={cells}
+                  placedModules={placedModules}
+                  draggedModule={draggedModule}
+                  onDrop={handleCellDrop}
                 />
               </group>
 
@@ -137,8 +199,11 @@ function App() {
           <CanvasControls viewMode={viewMode} setViewMode={setViewMode} />
         </main>
       </div>
-    </div >
+    </div>
   );
 }
 
 export default App;
+
+
+

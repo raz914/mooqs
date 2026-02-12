@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, Plus, Trash2, FileText, Maximize, RotateCcw } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import ModuleSelector from './ModuleSelector';
 
-const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor, onRequestQuote }) => {
+const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor, onRequestQuote, showModuleSelector, setShowModuleSelector }) => {
     const { t } = useLanguage();
+
     const handleChange = (key, value) => {
         const val = parseInt(value);
         if (key === 'rows') {
@@ -16,13 +18,25 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
             const spacing = dimensions.width / val;
             const newDividers = Array.from({ length: count }, (_, i) => Math.round((i + 1) * spacing));
             setDimensions(prev => ({ ...prev, [key]: val, verticalDividers: newDividers }));
+        } else if (key === 'width') {
+            setDimensions(prev => ({
+                ...prev,
+                [key]: val,
+                verticalDividers: (prev.verticalDividers || []).filter(d => d <= val)
+            }));
+        } else if (key === 'depth') {
+            setDimensions(prev => ({
+                ...prev,
+                [key]: val,
+                horizontalDividers: (prev.horizontalDividers || []).filter(d => d <= val)
+            }));
         } else {
             setDimensions(prev => ({ ...prev, [key]: val }));
         }
     };
 
     return (
-        <div className="bg-[#0d0d0d] text-white flex flex-col select-none no-scrollbar">
+        <div className="bg-[#0d0d0d] text-white flex flex-col select-none no-scrollbar relative">
             <div className="p-4 pb-12 space-y-6 bg-[#171717]">
                 {/* Tray Size Section */}
                 <section>
@@ -215,11 +229,17 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                 <hr className="border-white/5" />
 
                 {/* Modules */}
-                <section>
+                <section className="relative">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/50">{t('modules')}</h3>
-                        <button className="p-1 bg-white rounded-sm"><Plus size={14} className="text-black" /></button>
+                        <button
+                            className={`p-1 rounded-sm transition-colors ${showModuleSelector ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                            onClick={() => setShowModuleSelector(!showModuleSelector)}
+                        >
+                            <Plus size={14} />
+                        </button>
                     </div>
+
                     <div className="bg-black p-3 rounded border border-white/5">
                         <div className="flex justify-between items-center mb-3">
                             <span className="text-[11px] text-white/90">{t('glasses')} 01 <Maximize size={10} className="inline ml-1 opacity-40" /></span>
