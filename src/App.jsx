@@ -31,7 +31,8 @@ function App() {
   const [viewMode, setViewMode] = useState('3d');
   const [showOverview, setShowOverview] = useState(false);
   const [showModuleSelector, setShowModuleSelector] = useState(false);
-  const [finish, setFinish] = useState(savedConfig.finish || 'leather'); // 'leather' | 'velvet'
+  const [finish, setFinish] = useState(savedConfig.finish || 'velvet'); // 'leather' | 'velvet'
+  const [topCover, setTopCover] = useState(savedConfig.topCover || false);
   const [showWelcome, setShowWelcome] = useState(savedConfig.hasStarted ? false : true);
   const [showNewDesignModal, setShowNewDesignModal] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -97,6 +98,7 @@ function App() {
         placedModules,
         selectedColor,
         finish,
+        topCover,
         projectName,
         hasStarted: true
       };
@@ -106,7 +108,7 @@ function App() {
     };
 
     saveState();
-  }, [dimensions, placedModules, selectedColor, finish, projectName]);
+  }, [dimensions, placedModules, selectedColor, finish, topCover, projectName]);
 
   // Persist design history
   useEffect(() => {
@@ -196,8 +198,13 @@ function App() {
               horizontalDividers: dims.horizontalDividers ?? [],
               verticalDividers: dims.verticalDividers ?? [],
             }));
+<<<<<<< HEAD
             if (template.finish) setFinish(template.finish);
             setPlacedModules([]);
+=======
+            setFinish('velvet');
+            setTopCover(false);
+>>>>>>> bb5a6accdbec66a3f4d761788826f703b42b6542
             setShowWelcome(false);
           }}
         />
@@ -250,7 +257,12 @@ function App() {
               horizontalDividers: dims.horizontalDividers ?? [],
               verticalDividers: dims.verticalDividers ?? [],
             }));
+<<<<<<< HEAD
             if (template.finish) setFinish(template.finish);
+=======
+            setFinish('velvet');
+            setTopCover(false);
+>>>>>>> bb5a6accdbec66a3f4d761788826f703b42b6542
             setPlacedModules([]);
             setShowDashboard(false);
           }}
@@ -271,6 +283,8 @@ function App() {
               horizontalDividers: [300],
               verticalDividers: [333, 666],
             });
+            setFinish('velvet');
+            setTopCover(false);
             // Clear placed modules for new design
             setPlacedModules([]);
             setShowNewDesignModal(false);
@@ -316,6 +330,8 @@ function App() {
               setShowModuleSelector={setShowModuleSelector}
               finish={finish}
               setFinish={setFinish}
+              topCover={topCover}
+              setTopCover={setTopCover}
             />
           )}
         </div>
@@ -348,7 +364,7 @@ function App() {
                 enableRotate={viewMode === '3d'}
               />
 
-              <ambientLight intensity={0.5} />
+              <ambientLight intensity={1} />
               <pointLight position={[10, 10, 10]} intensity={1} castShadow />
               <spotLight position={[5, 10, 5]} angle={0.2} penumbra={1} intensity={2} castShadow />
 
@@ -364,6 +380,7 @@ function App() {
                   color={selectedColor?.hex || '#7E7E7E'}
                   placedModules={placedModules}
                   finish={finish}
+                  topCover={topCover}
                 />
 
                 {/* 3D Drop Handler for accurate cell detection */}
@@ -399,7 +416,8 @@ function App() {
                 far={4.5}
               />
 
-              <Environment preset="city" />
+              <Environment preset="city"
+                environmentIntensity={1.2} />
               <ScreenshotHandler onRegister={(handler) => (screenshotHandlerRef.current = handler)} />
             </Suspense>
           </Canvas>
@@ -417,6 +435,3 @@ function App() {
 }
 
 export default App;
-
-
-

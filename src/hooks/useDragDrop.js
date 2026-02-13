@@ -66,6 +66,8 @@ export const useDragDrop = ({ dimensions, onModulePlaced, initialPlacedModules =
             ...module,
             instanceId: Date.now(),
             cellKey: cell.key,
+            cellWidth: cell.width,
+            cellDepth: cell.depth,
             position: [cellCenterX, 0, cellCenterZ]
         };
 

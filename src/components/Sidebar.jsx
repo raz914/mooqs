@@ -3,7 +3,21 @@ import { ChevronDown, Plus, Trash2, FileText, Maximize, RotateCcw } from 'lucide
 import { useLanguage } from '../context/LanguageContext';
 import ModuleSelector from './ModuleSelector';
 
-const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor, onRequestQuote, showModuleSelector, setShowModuleSelector, finish, setFinish }) => {
+const Sidebar = ({
+    dimensions,
+    setDimensions,
+    setShowOverview,
+    colors,
+    selectedColor,
+    setSelectedColor,
+    onRequestQuote,
+    showModuleSelector,
+    setShowModuleSelector,
+    finish,
+    setFinish,
+    topCover,
+    setTopCover,
+}) => {
     const { t } = useLanguage();
     const [unit, setUnit] = useState('mm'); // 'mm' | 'cm'
 
@@ -114,12 +128,14 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                             <p className="text-[11px] text-white/50 mb-3 uppercase tracking-wider font-bold">{t('trayFinish')}</p>
                             <div className="flex gap-1 p-1 bg-white/5 rounded-full overflow-hidden">
                                 <button
+                                    type="button"
                                     onClick={() => setFinish('velvet')}
                                     className={`flex-1 text-[11px] py-1.5 px-3 rounded-full transition-colors ${finish === 'velvet' ? 'bg-white text-black font-semibold' : 'text-white/40 font-medium hover:text-white/60'}`}
                                 >
                                     {t('leatherWithVelvet')}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setFinish('leather')}
                                     className={`flex-1 text-[11px] py-1.5 px-3 rounded-full transition-colors ${finish === 'leather' ? 'bg-white text-black font-semibold' : 'text-white/40 font-medium hover:text-white/60'}`}
                                 >
@@ -135,9 +151,14 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                 {/* Top Cover */}
                 <div className="flex justify-between items-center">
                     <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/50">{t('topCover')}</h3>
-                    <div className="w-8 h-4 bg-white/20 rounded-full relative cursor-pointer">
-                        <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-white/40 rounded-full"></div>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setTopCover(!topCover)}
+                        className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${topCover ? 'bg-white' : 'bg-white/20'}`}
+                        aria-label={t('topCover')}
+                    >
+                        <div className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full transition-all ${topCover ? 'translate-x-4 bg-black' : 'translate-x-0 bg-white/70'}`}></div>
+                    </button>
                 </div>
 
                 <hr className="border-white/5" />
@@ -319,8 +340,20 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                         <div className="flex items-center gap-2 mb-3">
                             <span className="text-[9px] text-white/30">{t('finish')}</span>
                             <div className="flex gap-1 p-0.5 bg-black/40 rounded-full border border-white/5">
-                                <span className="text-[8px] px-2 py-0.5 bg-white text-black rounded-full font-bold">{t('leatherWithVelvet')}</span>
-                                <span className="text-[8px] px-2 py-0.5 text-white/40 rounded-full font-bold">{t('fullLeather')}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setFinish('velvet')}
+                                    className={`text-[8px] px-2 py-0.5 rounded-full font-bold transition-colors ${finish === 'velvet' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
+                                >
+                                    {t('leatherWithVelvet')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFinish('leather')}
+                                    className={`text-[8px] px-2 py-0.5 rounded-full font-bold transition-colors ${finish === 'leather' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
+                                >
+                                    {t('fullLeather')}
+                                </button>
                             </div>
                         </div>
                         <div className="flex items-center justify-between text-[9px] text-white/30 uppercase tracking-wider">
