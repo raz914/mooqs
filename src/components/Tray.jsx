@@ -194,14 +194,62 @@ const Tray = ({
         const modD = mod.depth / 100;
         const modH = mod.height / 100;
         const yPos = -h / 2 + thickness + modH / 2;
+
+        const holderInset = 0.01;
+        const cellW = Math.max(modW, (mod.cellWidth || mod.width) / 100);
+        const cellD = Math.max(modD, (mod.cellDepth || mod.depth) / 100);
+        const holderBaseH = Math.max(0.008, modH * 0.12);
+        const holderWallT = Math.max(0.007, Math.min(cellW, cellD) * 0.06);
+        const holderWallH = Math.max(0.02, modH * 0.55);
+        const holderW = Math.max(modW + holderWallT * 2, cellW - holderInset * 2);
+        const holderD = Math.max(modD + holderWallT, cellD - holderInset * 2);
+        const holderY = -h / 2 + thickness + holderBaseH / 2;
+        const holderWallY = holderY + holderBaseH / 2 + holderWallH / 2;
+
         return (
-          <Box
-            key={mod.instanceId}
-            args={[modW, modH, modD]}
-            position={[mod.position[0], yPos, mod.position[2]]}
-          >
-            <meshStandardMaterial color={mod.color} roughness={0.5} metalness={0.3} />
-          </Box>
+          <group key={mod.instanceId}>
+            <Box
+              args={[holderW, holderBaseH, holderD]}
+              position={[mod.position[0], holderY, mod.position[2]]}
+            >
+              <meshStandardMaterial color="#23252B" roughness={0.82} metalness={0.08} />
+            </Box>
+
+            <Box
+              args={[holderWallT, holderWallH, holderD]}
+              position={[mod.position[0] - holderW / 2 + holderWallT / 2, holderWallY, mod.position[2]]}
+            >
+              <meshStandardMaterial color="#2B2E35" roughness={0.78} metalness={0.1} />
+            </Box>
+
+            <Box
+              args={[holderWallT, holderWallH, holderD]}
+              position={[mod.position[0] + holderW / 2 - holderWallT / 2, holderWallY, mod.position[2]]}
+            >
+              <meshStandardMaterial color="#2B2E35" roughness={0.78} metalness={0.1} />
+            </Box>
+
+            <Box
+              args={[holderW - holderWallT * 2, holderWallH, holderWallT]}
+              position={[mod.position[0], holderWallY, mod.position[2] + holderD / 2 - holderWallT / 2]}
+            >
+              <meshStandardMaterial color="#2B2E35" roughness={0.78} metalness={0.1} />
+            </Box>
+
+            <Box
+              args={[holderW - holderWallT * 2, holderWallH, holderWallT]}
+              position={[mod.position[0], holderWallY, mod.position[2] - holderD / 2 + holderWallT / 2]}
+            >
+              <meshStandardMaterial color="#2B2E35" roughness={0.78} metalness={0.1} />
+            </Box>
+
+            <Box
+              args={[modW, modH, modD]}
+              position={[mod.position[0], yPos, mod.position[2]]}
+            >
+              <meshStandardMaterial color={mod.color} roughness={0.5} metalness={0.3} />
+            </Box>
+          </group>
         );
       })}
 
