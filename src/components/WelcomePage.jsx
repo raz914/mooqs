@@ -35,39 +35,19 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
             id: 4,
             name: `${t('watchTray')} 2:2`,
             image: img4,
-            dims: {
-                width: 1000, height: 100, depth: 500, rows: 2, cols: 3,
-                verticalDividers: [333, 666],
-                horizontalDividers: [{ pos: 250, start: 333, end: 666 }]
-            }
+            dims: { width: 1000, height: 100, depth: 500, rows: 2, cols: 2 }
         },
         {
             id: 5,
             name: `${t('watchTray')} 2:4`,
             image: img5,
-            dims: {
-                width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
-                verticalDividers: [200, 400, 600, 800],
-                horizontalDividers: [
-                    { pos: 300, start: 200, end: 400 },
-                    { pos: 300, start: 400, end: 600 },
-                    { pos: 300, start: 600, end: 800 }
-                ]
-            }
+            dims: { width: 1000, height: 100, depth: 600, rows: 2, cols: 4 }
         },
         {
             id: 6,
             name: `${t('watchTray')} 2:4`,
             image: img6,
-            dims: {
-                width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
-                verticalDividers: [200, 400, 600, 800],
-                horizontalDividers: [
-                    { pos: 300, start: 200, end: 400 },
-                    { pos: 300, start: 400, end: 600 },
-                    { pos: 300, start: 600, end: 800 }
-                ]
-            }
+            dims: { width: 1000, height: 100, depth: 600, rows: 2, cols: 4 }
         },
     ];
 

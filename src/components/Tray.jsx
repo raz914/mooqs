@@ -3,48 +3,54 @@ import { Box, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 const Tray = ({ width, depth, height, horizontalDividers = [], verticalDividers = [], color = '#7E7E7E', placedModules = [], finish = 'leather' }) => {
-  // Fix: The user changed texture files. Using existing one to avoid crash.
-  const velvetMaps = useTexture({
-    map: '/texture/velvet.jpg',
-  });
-
+  // Convert mm to meters (Three.js units) - for better scene scale we divide by 100
   const w = width / 100;
   const d = depth / 100;
   const h = height / 100;
-  const thickness = 0.05;
+  const thickness = 0.05; // 5mm relative thickness
 
+  // Teaching: useTexture loads images as Three.js Texture objects.
+  // We load several 'maps' to define different properties of the velvet material.
+  const velvetMaps = useTexture({
+    map: '/texture/Fabric039_1K-JPG_Color.jpg',
+    normalMap: '/texture/Fabric039_1K-JPG_NormalGL.jpg',
+    roughnessMap: '/texture/Fabric039_1K-JPG_Roughness.jpg',
+    aoMap: '/texture/Fabric039_1K-JPG_AmbientOcclusion.jpg',
+  });
+
+  // Teaching: We need to tell Three.js how to tile the texture if the object is larger than the image.
+  // We use RepeatWrapping and set a 'repeat' value based on the tray size.
   useMemo(() => {
     Object.values(velvetMaps).forEach((map) => {
       map.wrapS = map.wrapT = THREE.RepeatWrapping;
-      map.repeat.set(w * 2, d * 2);
+      map.repeat.set(w * 2, d * 2); // Adjust tiling density
     });
   }, [velvetMaps, w, d]);
 
+  // Teaching: For Leather, we don't have a texture yet, so we use MeshPhysicalMaterial.
+  // This allows us to add a 'clearcoat' layer, making it look like polished leather.
   const renderMaterial = (isInternal = false) => {
     if (finish === 'velvet' && isInternal) {
       return (
         <meshStandardMaterial
           {...velvetMaps}
-          color={color}
+          color={color} // Mix the texture with the selected color
           roughness={1}
         />
       );
     }
 
+    // Leather-look material using high-end properties
     return (
       <meshPhysicalMaterial
         color={color}
         roughness={0.7}
         metalness={0.1}
-        clearcoat={0.3}
+        clearcoat={0.3} // Adds a shiny protective layer
         clearcoatRoughness={0.2}
       />
     );
   };
-
-  // Convert dividers to standard format if they are just numbers
-  const hDivs = horizontalDividers.map(div => typeof div === 'number' ? { pos: div, start: 0, end: width } : div);
-  const vDivs = (Array.isArray(verticalDividers) ? verticalDividers : []).map(div => typeof div === 'number' ? { pos: div, start: 0, end: depth } : div);
 
   return (
     <group>
@@ -53,13 +59,15 @@ const Tray = ({ width, depth, height, horizontalDividers = [], verticalDividers 
         {renderMaterial(true)}
       </Box>
 
-      {/* Side Walls */}
+      {/* Side Walls - Front / Back */}
       <Box args={[w, h, thickness]} position={[0, 0, d / 2 - thickness / 2]}>
         {renderMaterial(false)}
       </Box>
       <Box args={[w, h, thickness]} position={[0, 0, -d / 2 + thickness / 2]}>
         {renderMaterial(false)}
       </Box>
+
+      {/* Side Walls - Left / Right */}
       <Box args={[thickness, h, d - thickness * 2]} position={[w / 2 - thickness / 2, 0, 0]}>
         {renderMaterial(false)}
       </Box>
@@ -67,25 +75,21 @@ const Tray = ({ width, depth, height, horizontalDividers = [], verticalDividers 
         {renderMaterial(false)}
       </Box>
 
-      {/* Internal Dividers - Horizontal (varies in Z, length in X) */}
-      {hDivs.map((div, i) => {
-        const zPos = d / 2 - (div.pos / 100);
-        const divWidth = (div.end - div.start) / 100;
-        const xPos = -w / 2 + (div.start + div.end) / 200;
+      {/* Internal Dividers - Horizontal */}
+      {horizontalDividers.map((pos, i) => {
+        const zPos = d / 2 - (pos / 100);
         return (
-          <Box key={`h-div-${i}`} args={[divWidth, h - thickness, thickness]} position={[xPos, thickness / 2, zPos]}>
+          <Box key={`h-div-${i}`} args={[w - thickness * 2, h - thickness, thickness]} position={[0, thickness / 2, zPos]}>
             {renderMaterial(true)}
           </Box>
         );
       })}
 
-      {/* Internal Dividers - Vertical (varies in X, length in Z) */}
-      {vDivs.map((div, i) => {
-        const xPos = -w / 2 + (div.pos / 100);
-        const divDepth = (div.end - div.start) / 100;
-        const zPos = d / 2 - (div.start + div.end) / 200;
+      {/* Internal Dividers - Vertical */}
+      {verticalDividers.map((pos, i) => {
+        const xPos = -w / 2 + (pos / 100);
         return (
-          <Box key={`v-div-${i}`} args={[thickness, h - thickness, divDepth]} position={[xPos, thickness / 2, zPos]}>
+          <Box key={`v-div-${i}`} args={[thickness, h - thickness, d - thickness * 2]} position={[xPos, thickness / 2, 0]}>
             {renderMaterial(true)}
           </Box>
         );
