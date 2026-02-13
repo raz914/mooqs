@@ -166,13 +166,24 @@ const Dashboard = ({ onSelectTemplate, onLogout, onEditProject, onDeleteDesign, 
         },
     ];
 
-    const recentDesigns = designHistory.slice(0, 6);
+    const mockDesigns = [
+        { id: 1, name: 'Watch tray 2:1', lastEdit: '23 Jun, 25', status: 'Complete' },
+        { id: 2, name: 'Watch tray 2:3', lastEdit: '23 Jun, 25', status: 'Pending' },
+        { id: 3, name: 'Watch tray 2:2', lastEdit: '23 Jun, 25', status: 'Draft' },
+        { id: 4, name: 'Watch tray 2:3', lastEdit: '23 Jun, 25', status: 'Draft' },
+        { id: 5, name: 'Watch tray 2:2', lastEdit: '23 Jun, 25', status: 'Complete' },
+        { id: 6, name: 'Watch tray 2:1', lastEdit: '23 Jun, 25', status: 'Complete' },
+    ];
+
+    const recentDesigns = currentProject
+        ? [currentProject, ...mockDesigns.slice(0, 5)]
+        : mockDesigns;
 
     const stats = [
-        { label: 'TOTAL DRAFT', value: designHistory.filter(d => d.status === 'Draft').length.toString(), color: 'bg-[#262626]' },
-        { label: 'PENDING DESIGN', value: designHistory.filter(d => d.status === 'Pending').length.toString(), color: 'bg-[#3b2a1a]' },
-        { label: 'PROCESSING DESIGN', value: designHistory.filter(d => d.status === 'Processing').length.toString(), color: 'bg-[#1f2937]' },
-        { label: 'INQUIRY COMPLETE', value: designHistory.filter(d => d.status === 'Complete').length.toString(), color: 'bg-[#143324]' },
+        { label: 'TOTAL DRAFT', value: '42', color: 'bg-[#262626]' },
+        { label: 'PENDING DESIGN', value: '23', color: 'bg-[#3b2a1a]' },
+        { label: 'PROCESSING DESIGN', value: '83', color: 'bg-[#1f2937]' },
+        { label: 'INQUIRY COMPLETE', value: '130', color: 'bg-[#143324]' },
     ];
 
     const sidebarItems = [

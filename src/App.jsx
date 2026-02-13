@@ -40,7 +40,16 @@ function App() {
   const [projectName, setProjectName] = useState(savedConfig.projectName || '');
   const [designHistory, setDesignHistory] = useState(() => {
     const savedHistory = localStorage.getItem('mooqs_design_history');
-    return savedHistory ? JSON.parse(savedHistory) : [];
+    return savedHistory ? JSON.parse(savedHistory) : [
+      { id: '#08635', name: 'Watch Pad', date: '20 Aug, 25', status: 'Draft', amount: '--' },
+      { id: '#08634', name: 'Drawer Module', date: '20 Aug, 25', status: 'Pending', amount: '--' },
+      { id: '#08633', name: 'Deep Tray 12x8', date: '20 Aug, 25', status: 'Processing', amount: '$500.00' },
+      { id: '#08635', name: 'Watch Pad', date: '20 Aug, 25', status: 'Draft', amount: '--' },
+      { id: '#08632', name: 'Watch Pad', date: '20 Aug, 25', status: 'Complete', amount: '$763.00' },
+      { id: '#08634', name: 'Drawer Module', date: '20 Aug, 25', status: 'Pending', amount: '--' },
+      { id: '#08633', name: 'Deep Tray 12x8', date: '20 Aug, 25', status: 'Pending', amount: '$500.00' },
+      { id: '#08632', name: 'Watch Pad', date: '20 Aug, 25', status: 'Complete', amount: '$763.00' },
+    ];
   });
 
   const colors = [
@@ -120,39 +129,7 @@ function App() {
     }
   };
 
-  const handleSaveDesign = () => {
-    if (!projectName) {
-      alert('Please name your project before saving.');
-      return;
-    }
-
-    // Check if a design with the same name already exists
-    if (designHistory.some(d => d.name.toLowerCase() === projectName.toLowerCase())) {
-      alert(`A design named "${projectName}" already exists. Please use a unique name.`);
-      return;
-    }
-
-    const newDesign = {
-      id: `#${Math.floor(Math.random() * 90000) + 10000}`,
-      name: projectName,
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }),
-      lastEdit: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' at ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-      status: 'Complete',
-      amount: '$' + (Math.floor(Math.random() * 500) + 300) + '.00', // Mock price for now
-      config: {
-        dimensions,
-        finish,
-        selectedColor,
-        placedModules
-      }
-    };
-
-    setDesignHistory(prev => [newDesign, ...prev]);
-    alert('Design saved to history!');
-  };
-
   const handleRequestQuote = () => {
-    handleSaveDesign();
     if (screenshotHandlerRef.current) {
       screenshotHandlerRef.current.capture();
     }
@@ -192,11 +169,32 @@ function App() {
           onSelectTemplate={(template) => {
             const dims = { ...template.dims };
 
+            // Auto-generate dividers if not provided but rows/cols are present in template
+            if (dims.rows && (!dims.horizontalDividers || dims.horizontalDividers.length === 0)) {
+              if (dims.rows > 1) {
+                const depth = dims.depth || dimensions.depth;
+                const spacing = depth / dims.rows;
+                dims.horizontalDividers = Array.from({ length: dims.rows - 1 }, (_, i) => Math.round((i + 1) * spacing));
+              } else {
+                dims.horizontalDividers = [];
+              }
+            }
+
+            if (dims.cols && (!dims.verticalDividers || dims.verticalDividers.length === 0)) {
+              if (dims.cols > 1) {
+                const width = dims.width || dimensions.width;
+                const spacing = width / dims.cols;
+                dims.verticalDividers = Array.from({ length: dims.cols - 1 }, (_, i) => Math.round((i + 1) * spacing));
+              } else {
+                dims.verticalDividers = [];
+              }
+            }
+
             setDimensions(prev => ({
               ...prev,
               ...dims,
-              horizontalDividers: dims.horizontalDividers ?? [],
-              verticalDividers: dims.verticalDividers ?? [],
+              horizontalDividers: dims.horizontalDividers ?? prev.horizontalDividers,
+              verticalDividers: dims.verticalDividers ?? prev.verticalDividers,
             }));
             if (template.finish) setFinish(template.finish);
             setPlacedModules([]);
