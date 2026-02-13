@@ -131,10 +131,9 @@ const Dashboard = ({ onSelectTemplate, onLogout, onEditProject, onDeleteDesign, 
             name: `${t('watchTray')} 2:2`,
             image: img4,
             dims: {
-                width: 1000, height: 100, depth: 500,
-                rows: 1, cols: 3,
-                verticalDividers: [250, 750],
-                horizontalDividers: [{ pos: 250, start: 250, end: 750 }]
+                width: 1000, height: 100, depth: 500, rows: 2, cols: 3,
+                verticalDividers: [333, 666],
+                horizontalDividers: [{ pos: 250, start: 333, end: 666 }]
             }
         },
         {
@@ -142,10 +141,13 @@ const Dashboard = ({ onSelectTemplate, onLogout, onEditProject, onDeleteDesign, 
             name: `${t('watchTray')} 2:4`,
             image: img5,
             dims: {
-                width: 1000, height: 100, depth: 600,
-                rows: 1, cols: 5,
-                verticalDividers: [150, 380, 610, 840],
-                horizontalDividers: [{ pos: 300, start: 150, end: 840 }]
+                width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
+                verticalDividers: [200, 400, 600, 800],
+                horizontalDividers: [
+                    { pos: 300, start: 200, end: 400 },
+                    { pos: 300, start: 400, end: 600 },
+                    { pos: 300, start: 600, end: 800 }
+                ]
             }
         },
         {
@@ -153,32 +155,24 @@ const Dashboard = ({ onSelectTemplate, onLogout, onEditProject, onDeleteDesign, 
             name: `${t('watchTray')} 2:4`,
             image: img6,
             dims: {
-                width: 1000, height: 100, depth: 600,
-                rows: 1, cols: 5,
-                verticalDividers: [150, 380, 610, 840],
-                horizontalDividers: [{ pos: 300, start: 150, end: 840 }]
+                width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
+                verticalDividers: [200, 400, 600, 800],
+                horizontalDividers: [
+                    { pos: 300, start: 200, end: 400 },
+                    { pos: 300, start: 400, end: 600 },
+                    { pos: 300, start: 600, end: 800 }
+                ]
             }
         },
     ];
 
-    const mockDesigns = [
-        { id: 1, name: 'Watch tray 2:1', lastEdit: '23 Jun, 25', status: 'Complete' },
-        { id: 2, name: 'Watch tray 2:3', lastEdit: '23 Jun, 25', status: 'Pending' },
-        { id: 3, name: 'Watch tray 2:2', lastEdit: '23 Jun, 25', status: 'Draft' },
-        { id: 4, name: 'Watch tray 2:3', lastEdit: '23 Jun, 25', status: 'Draft' },
-        { id: 5, name: 'Watch tray 2:2', lastEdit: '23 Jun, 25', status: 'Complete' },
-        { id: 6, name: 'Watch tray 2:1', lastEdit: '23 Jun, 25', status: 'Complete' },
-    ];
-
-    const recentDesigns = currentProject
-        ? [currentProject, ...mockDesigns.slice(0, 5)]
-        : mockDesigns;
+    const recentDesigns = designHistory.slice(0, 6);
 
     const stats = [
-        { label: 'TOTAL DRAFT', value: '42', color: 'bg-[#262626]' },
-        { label: 'PENDING DESIGN', value: '23', color: 'bg-[#3b2a1a]' },
-        { label: 'PROCESSING DESIGN', value: '83', color: 'bg-[#1f2937]' },
-        { label: 'INQUIRY COMPLETE', value: '130', color: 'bg-[#143324]' },
+        { label: 'TOTAL DRAFT', value: designHistory.filter(d => d.status === 'Draft').length.toString(), color: 'bg-[#262626]' },
+        { label: 'PENDING DESIGN', value: designHistory.filter(d => d.status === 'Pending').length.toString(), color: 'bg-[#3b2a1a]' },
+        { label: 'PROCESSING DESIGN', value: designHistory.filter(d => d.status === 'Processing').length.toString(), color: 'bg-[#1f2937]' },
+        { label: 'INQUIRY COMPLETE', value: designHistory.filter(d => d.status === 'Complete').length.toString(), color: 'bg-[#143324]' },
     ];
 
     const sidebarItems = [
