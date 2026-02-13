@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useRef } from 'react';
+import React, { useState, Suspense, useRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Grid, Environment, ContactShadows } from '@react-three/drei';
 import Sidebar from './components/Sidebar';
@@ -8,11 +8,17 @@ import Tray from './components/Tray';
 import CanvasControls from './components/CanvasControls';
 import ScreenshotHandler from './components/ScreenshotHandler';
 import ModuleSelector from './components/ModuleSelector';
+import WelcomePage from './components/WelcomePage';
+import NewDesignModal from './components/NewDesignModal';
+import Dashboard from './components/Dashboard';
 import TrayDropHandler from './components/TrayDropHandler';
 import { useDragDrop } from './hooks/useDragDrop';
 
 function App() {
-  const [dimensions, setDimensions] = useState({
+  // Load initial state from localStorage if available
+  const savedConfig = JSON.parse(localStorage.getItem('mooqs_tray_config') || '{}');
+
+  const [dimensions, setDimensions] = useState(savedConfig.dimensions || {
     width: 1000,
     depth: 600,
     height: 100,
@@ -25,6 +31,26 @@ function App() {
   const [viewMode, setViewMode] = useState('3d');
   const [showOverview, setShowOverview] = useState(false);
   const [showModuleSelector, setShowModuleSelector] = useState(false);
+  const [finish, setFinish] = useState(savedConfig.finish || 'leather'); // 'leather' | 'velvet'
+  const [showWelcome, setShowWelcome] = useState(savedConfig.hasStarted ? false : true);
+  const [showNewDesignModal, setShowNewDesignModal] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState('templates');
+  const [isSaving, setIsSaving] = useState(false);
+  const [projectName, setProjectName] = useState(savedConfig.projectName || '');
+  const [designHistory, setDesignHistory] = useState(() => {
+    const savedHistory = localStorage.getItem('mooqs_design_history');
+    return savedHistory ? JSON.parse(savedHistory) : [
+      { id: '#08635', name: 'Watch Pad', date: '20 Aug, 25', status: 'Draft', amount: '--' },
+      { id: '#08634', name: 'Drawer Module', date: '20 Aug, 25', status: 'Pending', amount: '--' },
+      { id: '#08633', name: 'Deep Tray 12x8', date: '20 Aug, 25', status: 'Processing', amount: '$500.00' },
+      { id: '#08635', name: 'Watch Pad', date: '20 Aug, 25', status: 'Draft', amount: '--' },
+      { id: '#08632', name: 'Watch Pad', date: '20 Aug, 25', status: 'Complete', amount: '$763.00' },
+      { id: '#08634', name: 'Drawer Module', date: '20 Aug, 25', status: 'Pending', amount: '--' },
+      { id: '#08633', name: 'Deep Tray 12x8', date: '20 Aug, 25', status: 'Pending', amount: '$500.00' },
+      { id: '#08632', name: 'Watch Pad', date: '20 Aug, 25', status: 'Complete', amount: '$763.00' },
+    ];
+  });
 
   const colors = [
     { name: 'Red', hex: '#ef4444', class: 'bg-red-500' },
@@ -38,7 +64,7 @@ function App() {
     { name: 'Teal', hex: '#14b8a6', class: 'bg-teal-500' },
     { name: 'Green', hex: '#16a34a', class: 'bg-green-600' }
   ];
-  const [selectedColor, setSelectedColor] = useState(colors[2]);
+  const [selectedColor, setSelectedColor] = useState(savedConfig.selectedColor || colors[2]);
 
   const screenshotHandlerRef = useRef(null);
 
@@ -52,13 +78,56 @@ function App() {
     placeModuleInCell,
     handleDragStart,
     handleDragEnd,
+    setPlacedModules,
   } = useDragDrop({
     dimensions,
     onModulePlaced: (mod) => {
       console.log('Module placed:', mod.name, 'in cell', mod.cellKey);
       setShowModuleSelector(false);
-    }
+    },
+    initialPlacedModules: savedConfig.placedModules || []
   });
+
+  // Autosave effect
+  useEffect(() => {
+    const saveState = () => {
+      setIsSaving(true);
+      const config = {
+        dimensions,
+        placedModules,
+        selectedColor,
+        finish,
+        projectName,
+        hasStarted: true
+      };
+      localStorage.setItem('mooqs_tray_config', JSON.stringify(config));
+      // Simulate/Show saving state for a brief moment
+      setTimeout(() => setIsSaving(false), 500);
+    };
+
+    saveState();
+  }, [dimensions, placedModules, selectedColor, finish, projectName]);
+
+  // Persist design history
+  useEffect(() => {
+    localStorage.setItem('mooqs_design_history', JSON.stringify(designHistory));
+  }, [designHistory]);
+
+  const handleDeleteDesign = (id) => {
+    setDesignHistory(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleEditDesign = (design) => {
+    // If it's a draft, we "resume" it
+    if (design.status === 'Draft') {
+      // In a real app we'd load configuration here
+      // For now we just close dashboard to show current editor
+      setShowDashboard(false);
+    } else {
+      // For others we just view
+      setShowDashboard(false);
+    }
+  };
 
   const handleRequestQuote = () => {
     if (screenshotHandlerRef.current) {
@@ -88,7 +157,96 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-[#111111] overflow-hidden font-sans text-white">
-      <TopBar />
+      {showWelcome && (
+        <WelcomePage
+          onClose={() => setShowWelcome(false)}
+          onCreateNew={() => setShowNewDesignModal(true)}
+          onViewAll={() => {
+            setDashboardTab('templates');
+            setShowDashboard(true);
+            setShowWelcome(false);
+          }}
+          onSelectTemplate={(template) => {
+            setDimensions(prev => ({
+              ...prev,
+              rows: template.dims.rows,
+              cols: template.dims.cols,
+              horizontalDividers: [],
+              verticalDividers: [],
+            }));
+            setShowWelcome(false);
+          }}
+        />
+      )}
+      {showDashboard && (
+        <Dashboard
+          initialTab={dashboardTab}
+          designHistory={designHistory}
+          currentProject={projectName ? {
+            id: 'current',
+            name: projectName,
+            lastEdit: 'Just now',
+            status: 'Draft',
+            isCurrent: true
+          } : null}
+          onLogout={() => {
+            setShowDashboard(false);
+            setShowWelcome(true);
+          }}
+          onDeleteDesign={handleDeleteDesign}
+          onEditDesign={handleEditDesign}
+          onEditProject={() => setShowDashboard(false)}
+          onSelectTemplate={(template) => {
+            setDimensions(prev => ({
+              ...prev,
+              rows: template.dims.rows,
+              cols: template.dims.cols,
+              horizontalDividers: [],
+              verticalDividers: [],
+            }));
+            setPlacedModules([]);
+            setShowDashboard(false);
+          }}
+        />
+      )}
+      {showNewDesignModal && (
+        <NewDesignModal
+          onClose={() => setShowNewDesignModal(false)}
+          onCreate={(title) => {
+            setProjectName(title);
+            // Reset to default tray
+            setDimensions({
+              width: 1000,
+              depth: 600,
+              height: 100,
+              rows: 2,
+              cols: 3,
+              horizontalDividers: [300],
+              verticalDividers: [333, 666],
+            });
+            // Clear placed modules for new design
+            setPlacedModules([]);
+            setShowNewDesignModal(false);
+            setShowOverview(false); // Ensure sidebar is visible for adjustments
+            setShowWelcome(false);
+          }}
+        />
+      )}
+      <TopBar
+        onLogoClick={() => {
+          if (showDashboard) setShowDashboard(false);
+          setShowWelcome(true);
+        }}
+        onOpenTab={(tab) => {
+          setDashboardTab(tab);
+          setShowDashboard(true);
+          setShowWelcome(false);
+        }}
+        onLogout={() => {
+          setShowDashboard(false);
+          setShowWelcome(true);
+        }}
+      />
 
       <div className="flex flex-1 overflow-hidden relative">
         <div className="w-[400px] overflow-y-auto shrink-0 border-r border-white/10 no-scrollbar">
@@ -109,6 +267,8 @@ function App() {
               onRequestQuote={handleRequestQuote}
               showModuleSelector={showModuleSelector}
               setShowModuleSelector={setShowModuleSelector}
+              finish={finish}
+              setFinish={setFinish}
             />
           )}
         </div>
@@ -156,6 +316,7 @@ function App() {
                   verticalDividers={dimensions.verticalDividers}
                   color={selectedColor?.hex || '#7E7E7E'}
                   placedModules={placedModules}
+                  finish={finish}
                 />
 
                 {/* 3D Drop Handler for accurate cell detection */}
@@ -196,7 +357,12 @@ function App() {
             </Suspense>
           </Canvas>
 
-          <CanvasControls viewMode={viewMode} setViewMode={setViewMode} />
+          <CanvasControls
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            onNewDesign={() => setShowNewDesignModal(true)}
+            isSaving={isSaving}
+          />
         </main>
       </div>
     </div>

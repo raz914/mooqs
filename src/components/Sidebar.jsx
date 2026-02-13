@@ -3,8 +3,26 @@ import { ChevronDown, Plus, Trash2, FileText, Maximize, RotateCcw } from 'lucide
 import { useLanguage } from '../context/LanguageContext';
 import ModuleSelector from './ModuleSelector';
 
-const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor, onRequestQuote, showModuleSelector, setShowModuleSelector }) => {
+const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedColor, setSelectedColor, onRequestQuote, showModuleSelector, setShowModuleSelector, finish, setFinish }) => {
     const { t } = useLanguage();
+    const [unit, setUnit] = useState('mm'); // 'mm' | 'cm'
+
+    const toDisplay = (val, key) => {
+        if (key === 'rows' || key === 'cols') return val;
+        return unit === 'cm' ? val / 10 : val;
+    };
+
+    const fromDisplay = (val, key) => {
+        if (key === 'rows' || key === 'cols') return val;
+        return unit === 'cm' ? val * 10 : val;
+    };
+
+    const getStep = (key) => {
+        if (key === 'rows' || key === 'cols') return 1;
+        return unit === 'cm' ? 1 : 10;
+    };
+
+    const getUnitLabel = () => unit === 'mm' ? t('millimeter') : 'CM';
 
     const handleChange = (key, value) => {
         const val = parseInt(value);
@@ -42,8 +60,11 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                 <section>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-[11px] font-bold tracking-[0.1em] uppercase text-white/50">{t('traySize')}</h3>
-                        <div className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded text-[10px]">
-                            {t('millimeter')} <ChevronDown size={12} className="text-white/40" />
+                        <div
+                            className="flex items-center gap-1 bg-white/5 px-2 py-1 rounded text-[10px] cursor-pointer hover:bg-white/10"
+                            onClick={() => setUnit(unit === 'mm' ? 'cm' : 'mm')}
+                        >
+                            {getUnitLabel()} <ChevronDown size={12} className="text-white/40" />
                         </div>
                     </div>
 
@@ -55,21 +76,31 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                             { label: t('gridRows'), key: 'rows', min: 1, max: 6, desc: t('rowsDesc') },
                             { label: t('gridCols'), key: 'cols', min: 1, max: 6, desc: t('colsDesc') },
                         ].map((item, index) => {
+                            const displayValue = toDisplay(dimensions[item.key], item.key);
+                            const displayMin = toDisplay(item.min, item.key);
+                            const displayMax = toDisplay(item.max, item.key);
                             const progress = ((dimensions[item.key] - item.min) / (item.max - item.min)) * 100;
                             return (
                                 <div key={item.key} className={index !== 0 ? "mt-6" : ""}>
                                     <div className="flex justify-between items-center mb-3">
                                         <label className="text-[14px] font-normal text-white/90">{item.label}</label>
-                                        <div className="bg-[#1a1a1a] px-3 py-1 rounded border border-white/10 text-[13px] font-medium min-w-[36px] text-center">
-                                            {dimensions[item.key]}
+                                        <div className="bg-[#1a1a1a] px-1 py-1 rounded border border-white/10 min-w-[50px]">
+                                            <input
+                                                type="number"
+                                                value={displayValue}
+                                                step={getStep(item.key)}
+                                                onChange={(e) => handleChange(item.key, fromDisplay(parseFloat(e.target.value) || 0, item.key))}
+                                                className="w-full bg-transparent text-[13px] font-medium text-center focus:outline-none text-white appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
                                         </div>
                                     </div>
                                     <input
                                         type="range"
-                                        min={item.min}
-                                        max={item.max}
-                                        value={dimensions[item.key]}
-                                        onChange={(e) => handleChange(item.key, e.target.value)}
+                                        min={displayMin}
+                                        max={displayMax}
+                                        step={getStep(item.key)}
+                                        value={displayValue}
+                                        onChange={(e) => handleChange(item.key, fromDisplay(parseFloat(e.target.value) || 0, item.key))}
                                         className="custom-range"
                                         style={{ '--range-progress': `${progress}%` }}
                                     />
@@ -82,8 +113,18 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                         <div className="pt-6 border-white/5">
                             <p className="text-[11px] text-white/50 mb-3 uppercase tracking-wider font-bold">{t('trayFinish')}</p>
                             <div className="flex gap-1 p-1 bg-white/5 rounded-full overflow-hidden">
-                                <button className="flex-1 text-[11px] py-1.5 px-3 rounded-full bg-white text-black font-semibold">{t('leatherWithVelvet')}</button>
-                                <button className="flex-1 text-[11px] py-1.5 px-3 rounded-full text-white/40 font-medium">{t('fullLeather')}</button>
+                                <button
+                                    onClick={() => setFinish('velvet')}
+                                    className={`flex-1 text-[11px] py-1.5 px-3 rounded-full transition-colors ${finish === 'velvet' ? 'bg-white text-black font-semibold' : 'text-white/40 font-medium hover:text-white/60'}`}
+                                >
+                                    {t('leatherWithVelvet')}
+                                </button>
+                                <button
+                                    onClick={() => setFinish('leather')}
+                                    className={`flex-1 text-[11px] py-1.5 px-3 rounded-full transition-colors ${finish === 'leather' ? 'bg-white text-black font-semibold' : 'text-white/40 font-medium hover:text-white/60'}`}
+                                >
+                                    {t('fullLeather')}
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -134,18 +175,32 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                                                 }));
                                             }}
                                         />
-                                        <div className="bg-[#1a1a1a] px-3 py-1 rounded border border-white/10 text-[13px] font-medium min-w-[50px] text-center">
-                                            {pos}mm
+                                        <div className="bg-[#1a1a1a] px-1 py-1 rounded border border-white/10 min-w-[50px]">
+                                            <input
+                                                type="number"
+                                                value={toDisplay(pos)}
+                                                step={getStep()}
+                                                onChange={(e) => {
+                                                    const newVal = fromDisplay(parseFloat(e.target.value) || 0);
+                                                    setDimensions(prev => {
+                                                        const newDividers = [...prev.horizontalDividers];
+                                                        newDividers[index] = newVal;
+                                                        return { ...prev, horizontalDividers: newDividers };
+                                                    });
+                                                }}
+                                                className="w-full bg-transparent text-[13px] font-medium text-center focus:outline-none text-white appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
                                         </div>
                                     </div>
                                 </div>
                                 <input
                                     type="range"
                                     min={0}
-                                    max={dimensions.depth}
-                                    value={pos}
+                                    max={toDisplay(dimensions.depth)}
+                                    step={getStep()}
+                                    value={toDisplay(pos)}
                                     onChange={(e) => {
-                                        const newVal = parseInt(e.target.value);
+                                        const newVal = fromDisplay(parseFloat(e.target.value) || 0);
                                         setDimensions(prev => {
                                             const newDividers = [...prev.horizontalDividers];
                                             newDividers[index] = newVal;
@@ -198,16 +253,32 @@ const Sidebar = ({ dimensions, setDimensions, setShowOverview, colors, selectedC
                                                 }));
                                             }}
                                         />
-                                        <div className="bg-white/10 px-2 py-0.5 rounded text-[10px] ">{pos}mm</div>
+                                        <div className="bg-white/10 px-1 py-0.5 rounded min-w-[40px]">
+                                            <input
+                                                type="number"
+                                                value={toDisplay(pos)}
+                                                step={getStep()}
+                                                onChange={(e) => {
+                                                    const newVal = fromDisplay(parseFloat(e.target.value) || 0);
+                                                    setDimensions(prev => {
+                                                        const newDividers = [...prev.verticalDividers];
+                                                        newDividers[index] = newVal;
+                                                        return { ...prev, verticalDividers: newDividers };
+                                                    });
+                                                }}
+                                                className="w-full bg-transparent text-[10px] text-center focus:outline-none text-white appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <input
                                     type="range"
                                     min={0}
-                                    max={dimensions.width}
-                                    value={pos}
+                                    max={toDisplay(dimensions.width)}
+                                    step={getStep()}
+                                    value={toDisplay(pos)}
                                     onChange={(e) => {
-                                        const newVal = parseInt(e.target.value);
+                                        const newVal = fromDisplay(parseFloat(e.target.value) || 0);
                                         setDimensions(prev => {
                                             const newDividers = [...prev.verticalDividers];
                                             newDividers[index] = newVal;

@@ -2,7 +2,7 @@ import React from 'react';
 import { RotateCcw, RotateCw, Cloud, Plus, Box, Layout } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
-const CanvasControls = ({ viewMode, setViewMode }) => {
+const CanvasControls = ({ viewMode, setViewMode, onNewDesign, isSaving }) => {
     const { t } = useLanguage();
 
     return (
@@ -15,8 +15,17 @@ const CanvasControls = ({ viewMode, setViewMode }) => {
                         <button className="p-2 text-white/40 hover:text-white transition-colors"><RotateCw size={18} /></button>
                     </div>
 
-                    <button className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-[11px] font-bold text-white/50">
-                        <Cloud size={14} /> {t('saved')}
+                    <button className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 text-[11px] font-bold text-white/50 transition-all">
+                        {isSaving ? (
+                            <>
+                                <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Cloud size={14} className="text-green-500/70" /> {t('saved')}
+                            </>
+                        )}
                     </button>
                 </div>
 
@@ -39,7 +48,10 @@ const CanvasControls = ({ viewMode, setViewMode }) => {
                     </button>
                 </div>
 
-                <button className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/10 text-[11px] font-bold text-white hover:bg-white/10 transition-all pointer-events-auto">
+                <button
+                    onClick={onNewDesign}
+                    className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-5 py-2.5 rounded-full border border-white/10 text-[11px] font-bold text-white hover:bg-white/10 transition-all pointer-events-auto"
+                >
                     <Plus size={16} /> {t('newDesign')}
                 </button>
             </div>

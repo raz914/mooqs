@@ -1,9 +1,9 @@
 import React from 'react';
-import { Globe, User, ChevronDown, Layout, Cloud, Box, RotateCcw } from 'lucide-react';
+import { Globe, User, ChevronDown, LayoutDashboard, Cloud, Box, RotateCcw } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { useLanguage } from '../context/LanguageContext';
 
-const TopBar = () => {
+const TopBar = ({ onLogoClick, onOpenTab, onLogout }) => {
     const [isProfileOpen, setIsProfileOpen] = React.useState(false);
     const [isLangOpen, setIsLangOpen] = React.useState(false);
     const { language, setLanguage, t } = useLanguage();
@@ -23,10 +23,14 @@ const TopBar = () => {
     const currentLangLabel = languages.find(l => l.code === language)?.label || 'English';
 
     return (
-        <div className="h-[60px] bg-[#171717] border-black border-b-8 flex items-center justify-between px-8 select-none relative z-50">
-            <div className="flex items-center gap-2">
+        <div className="h-[60px] bg-[#171717] border-black border-b-8 flex items-center justify-between px-8 select-none relative z-[130]">
+            <button
+                onClick={onLogoClick}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity active:scale-95"
+                title="Open Welcome Screen"
+            >
                 <img src={logo} alt="mooos logo" className="h-10 w-auto" />
-            </div>
+            </button>
 
             <div className="flex items-center gap-6">
                 <div className="relative">
@@ -82,17 +86,30 @@ const TopBar = () => {
                     {isProfileOpen && (
                         <div className="absolute right-0 top-full mt-2 w-48 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50">
                             {[
-                                { icon: <Layout size={14} />, label: t('dashboard'), key: 'dashboard' },
+                                { icon: <LayoutDashboard size={14} />, label: t('dashboard'), key: 'dashboard' },
                                 { icon: <User size={14} />, label: t('profileSettings'), key: 'profileSettings' },
                                 { icon: <Cloud size={14} />, label: t('designHistory'), key: 'designHistory' },
                                 { icon: <Box size={14} />, label: t('templates'), key: 'templates' },
                             ].map((item, i) => (
-                                <button key={i} className="w-full flex items-center gap-3 px-4 py-3 text-[11px] text-white/60 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-0 text-left">
+                                <button
+                                    key={i}
+                                    onClick={() => {
+                                        onOpenTab(item.key);
+                                        setIsProfileOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-[11px] text-white/60 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-0 text-left"
+                                >
                                     {item.icon}
                                     {item.label}
                                 </button>
                             ))}
-                            <button className="w-full flex items-center gap-3 px-4 py-3 text-[11px] text-red-500 hover:bg-red-500/10 transition-colors text-left">
+                            <button
+                                onClick={() => {
+                                    onLogout?.();
+                                    setIsProfileOpen(false);
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-[11px] text-red-500 hover:bg-red-500/10 transition-colors text-left"
+                            >
                                 <RotateCcw size={14} /> {t('logout')}
                             </button>
                         </div>

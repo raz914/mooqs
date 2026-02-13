@@ -3,9 +3,9 @@ import { useState, useCallback } from 'react';
 /**
  * Custom hook to manage drag and drop state for tray modules
  */
-export const useDragDrop = ({ dimensions, onModulePlaced }) => {
+export const useDragDrop = ({ dimensions, onModulePlaced, initialPlacedModules = [] }) => {
     const [draggedModule, setDraggedModule] = useState(null);
-    const [placedModules, setPlacedModules] = useState([]);
+    const [placedModules, setPlacedModules] = useState(initialPlacedModules);
 
     // Calculate cell grid based on dividers
     const getCells = useCallback(() => {
