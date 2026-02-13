@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit3, LayoutGrid } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 
 const TemplateCard = ({ template, onClick }) => {
     return (
@@ -7,10 +7,13 @@ const TemplateCard = ({ template, onClick }) => {
             onClick={() => onClick(template)}
             className="group bg-[#0a0a0a] rounded-xl overflow-hidden border border-white/5 hover:border-white/15 transition-all cursor-pointer"
         >
-            <div className={`h-48 ${template.color} relative flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity`}>
-                {/* Placeholder for Tray Preview */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                <LayoutGrid className="text-white/10" size={60} />
+            <div className="h-48 relative overflow-hidden flex items-center justify-center opacity-90 group-hover:opacity-100 transition-opacity">
+                <img
+                    src={template.image}
+                    alt={template.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
             </div>
             <div className="p-4 bg-[#0a0a0a] flex justify-between items-center border-t border-white/5">
                 <span className="text-[13px] font-medium text-white/90">{template.name}</span>

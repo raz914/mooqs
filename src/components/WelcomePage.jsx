@@ -2,17 +2,23 @@ import { X, Folder, PlusSquare } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.png';
 import TemplateCard from './TemplateCard';
+import img1 from '../assets/23.png';
+import img2 from '../assets/60778f3eecc82deef9f3bde4bd9e8e47f7de01cb.jpg';
+import img3 from '../assets/6bd9631aadf0dd9aa28bd96e84140f9823ab3979.jpg';
+import img4 from '../assets/6e84a76d4ca3107eeb89114b5de640c46fe33a29.jpg';
+import img5 from '../assets/e2bb20bf174169276637b7cb1a0553608d300664.jpg';
+import img6 from '../assets/fc205cf7b6c93228345935e25f835f744058788b.png';
 
 const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
     const { t } = useLanguage();
 
     const templates = [
-        { id: 1, name: `${t('watchTray')} 2:3`, color: 'bg-[#d4a373]', dims: { rows: 2, cols: 3 } },
-        { id: 2, name: `${t('watchTray')} 2:2`, color: 'bg-[#4a4e69]', dims: { rows: 2, cols: 2 } },
-        { id: 3, name: `${t('watchTray')} 2:1`, color: 'bg-[#22223b]', dims: { rows: 1, cols: 2 } },
-        { id: 4, name: `${t('watchTray')} 2:1`, color: 'bg-[#22223b]', dims: { rows: 1, cols: 2 } },
-        { id: 5, name: `${t('watchTray')} 2:3`, color: 'bg-[#d4a373]', dims: { rows: 2, cols: 3 } },
-        { id: 6, name: `${t('watchTray')} 2:2`, color: 'bg-[#4a4e69]', dims: { rows: 2, cols: 2 } },
+        { id: 1, name: `${t('watchTray')} 2:3`, image: img1, dims: { rows: 2, cols: 3 } },
+        { id: 2, name: `${t('watchTray')} 2:2`, image: img2, dims: { rows: 2, cols: 2 } },
+        { id: 3, name: `${t('watchTray')} 2:1`, image: img3, dims: { rows: 1, cols: 2 } },
+        { id: 4, name: `${t('watchTray')} 2:1`, image: img4, dims: { rows: 1, cols: 2 } },
+        { id: 5, name: `${t('watchTray')} 2:3`, image: img5, dims: { rows: 2, cols: 3 } },
+        { id: 6, name: `${t('watchTray')} 2:2`, image: img6, dims: { rows: 2, cols: 2 } },
     ];
 
     return (
