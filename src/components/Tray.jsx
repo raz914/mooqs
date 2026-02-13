@@ -76,20 +76,44 @@ const Tray = ({ width, depth, height, horizontalDividers = [], verticalDividers 
       </Box>
 
       {/* Internal Dividers - Horizontal */}
-      {horizontalDividers.map((pos, i) => {
+      {horizontalDividers.map((div, i) => {
+        const isObject = typeof div === 'object';
+        const pos = isObject ? div.pos : div;
+        const start = isObject ? (div.start || 0) : 0;
+        const end = isObject ? (div.end || width) : width;
+
         const zPos = d / 2 - (pos / 100);
+        const divLength = (end - start) / 100;
+        const xOffset = ((start + end) / 2 - width / 2) / 100;
+
         return (
-          <Box key={`h-div-${i}`} args={[w - thickness * 2, h - thickness, thickness]} position={[0, thickness / 2, zPos]}>
+          <Box
+            key={`h-div-${i}`}
+            args={[divLength, h - thickness, thickness]}
+            position={[xOffset, thickness / 2, zPos]}
+          >
             {renderMaterial(true)}
           </Box>
         );
       })}
 
       {/* Internal Dividers - Vertical */}
-      {verticalDividers.map((pos, i) => {
+      {verticalDividers.map((div, i) => {
+        const isObject = typeof div === 'object';
+        const pos = isObject ? div.pos : div;
+        const start = isObject ? (div.start || 0) : 0;
+        const end = isObject ? (div.end || depth) : depth;
+
         const xPos = -w / 2 + (pos / 100);
+        const divLength = (end - start) / 100;
+        const zOffset = (depth / 2 - (start + end) / 2) / 100;
+
         return (
-          <Box key={`v-div-${i}`} args={[thickness, h - thickness, d - thickness * 2]} position={[xPos, thickness / 2, 0]}>
+          <Box
+            key={`v-div-${i}`}
+            args={[thickness, h - thickness, divLength]}
+            position={[xPos, thickness / 2, zOffset]}
+          >
             {renderMaterial(true)}
           </Box>
         );

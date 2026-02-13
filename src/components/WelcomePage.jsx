@@ -13,12 +13,57 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
     const { t } = useLanguage();
 
     const templates = [
-        { id: 1, name: `${t('watchTray')} 2:3`, image: img1, dims: { rows: 2, cols: 3 } },
-        { id: 2, name: `${t('watchTray')} 2:2`, image: img2, dims: { rows: 2, cols: 2 } },
-        { id: 3, name: `${t('watchTray')} 2:1`, image: img3, dims: { rows: 1, cols: 2 } },
-        { id: 4, name: `${t('watchTray')} 2:1`, image: img4, dims: { rows: 1, cols: 2 } },
-        { id: 5, name: `${t('watchTray')} 2:3`, image: img5, dims: { rows: 2, cols: 3 } },
-        { id: 6, name: `${t('watchTray')} 2:2`, image: img6, dims: { rows: 2, cols: 2 } },
+        {
+            id: 1,
+            name: `${t('watchTray')} 1:1`,
+            image: img1,
+            dims: { width: 1590, height: 210, depth: 630, rows: 1, cols: 1, horizontalDividers: [], verticalDividers: [1160] }
+        },
+        {
+            id: 2,
+            name: `${t('watchTray')} 1:4`,
+            image: img2,
+            dims: { width: 1590, height: 210, depth: 630, rows: 1, cols: 1, horizontalDividers: [], verticalDividers: [240, 540, 900, 1230] }
+        },
+        {
+            id: 3,
+            name: `${t('watchTray')} 2:4`,
+            image: img3,
+            dims: { width: 1000, height: 100, depth: 500, rows: 2, cols: 4 }
+        },
+        {
+            id: 4,
+            name: `${t('watchTray')} 2:2`,
+            image: img4,
+            dims: {
+                width: 1000, height: 100, depth: 500,
+                rows: 1, cols: 3,
+                verticalDividers: [250, 750],
+                horizontalDividers: [{ pos: 250, start: 250, end: 750 }]
+            }
+        },
+        {
+            id: 5,
+            name: `${t('watchTray')} 2:4`,
+            image: img5,
+            dims: {
+                width: 1000, height: 100, depth: 600,
+                rows: 1, cols: 5,
+                verticalDividers: [150, 380, 610, 840],
+                horizontalDividers: [{ pos: 300, start: 150, end: 840 }]
+            }
+        },
+        {
+            id: 6,
+            name: `${t('watchTray')} 2:4`,
+            image: img6,
+            dims: {
+                width: 1000, height: 100, depth: 600,
+                rows: 1, cols: 5,
+                verticalDividers: [150, 380, 610, 840],
+                horizontalDividers: [{ pos: 300, start: 150, end: 840 }]
+            }
+        },
     ];
 
     return (

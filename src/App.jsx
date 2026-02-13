@@ -167,13 +167,37 @@ function App() {
             setShowWelcome(false);
           }}
           onSelectTemplate={(template) => {
+            const dims = { ...template.dims };
+
+            // Auto-generate dividers if not provided but rows/cols are present in template
+            if (dims.rows && (!dims.horizontalDividers || dims.horizontalDividers.length === 0)) {
+              if (dims.rows > 1) {
+                const depth = dims.depth || dimensions.depth;
+                const spacing = depth / dims.rows;
+                dims.horizontalDividers = Array.from({ length: dims.rows - 1 }, (_, i) => Math.round((i + 1) * spacing));
+              } else {
+                dims.horizontalDividers = [];
+              }
+            }
+
+            if (dims.cols && (!dims.verticalDividers || dims.verticalDividers.length === 0)) {
+              if (dims.cols > 1) {
+                const width = dims.width || dimensions.width;
+                const spacing = width / dims.cols;
+                dims.verticalDividers = Array.from({ length: dims.cols - 1 }, (_, i) => Math.round((i + 1) * spacing));
+              } else {
+                dims.verticalDividers = [];
+              }
+            }
+
             setDimensions(prev => ({
               ...prev,
-              rows: template.dims.rows,
-              cols: template.dims.cols,
-              horizontalDividers: [],
-              verticalDividers: [],
+              ...dims,
+              horizontalDividers: dims.horizontalDividers ?? [],
+              verticalDividers: dims.verticalDividers ?? [],
             }));
+            if (template.finish) setFinish(template.finish);
+            setPlacedModules([]);
             setShowWelcome(false);
           }}
         />
@@ -197,13 +221,36 @@ function App() {
           onEditDesign={handleEditDesign}
           onEditProject={() => setShowDashboard(false)}
           onSelectTemplate={(template) => {
+            const dims = { ...template.dims };
+
+            // Auto-generate dividers if not provided but rows/cols are present in template
+            if (dims.rows && (!dims.horizontalDividers || dims.horizontalDividers.length === 0)) {
+              if (dims.rows > 1) {
+                const depth = dims.depth || dimensions.depth;
+                const spacing = depth / dims.rows;
+                dims.horizontalDividers = Array.from({ length: dims.rows - 1 }, (_, i) => Math.round((i + 1) * spacing));
+              } else {
+                dims.horizontalDividers = [];
+              }
+            }
+
+            if (dims.cols && (!dims.verticalDividers || dims.verticalDividers.length === 0)) {
+              if (dims.cols > 1) {
+                const width = dims.width || dimensions.width;
+                const spacing = width / dims.cols;
+                dims.verticalDividers = Array.from({ length: dims.cols - 1 }, (_, i) => Math.round((i + 1) * spacing));
+              } else {
+                dims.verticalDividers = [];
+              }
+            }
+
             setDimensions(prev => ({
               ...prev,
-              rows: template.dims.rows,
-              cols: template.dims.cols,
-              horizontalDividers: [],
-              verticalDividers: [],
+              ...dims,
+              horizontalDividers: dims.horizontalDividers ?? [],
+              verticalDividers: dims.verticalDividers ?? [],
             }));
+            if (template.finish) setFinish(template.finish);
             setPlacedModules([]);
             setShowDashboard(false);
           }}
