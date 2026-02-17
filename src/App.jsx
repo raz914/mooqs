@@ -32,7 +32,7 @@ function App() {
   const [showOverview, setShowOverview] = useState(false);
   const [showModuleSelector, setShowModuleSelector] = useState(false);
   const [finish, setFinish] = useState(savedConfig.finish || 'leather'); // 'leather' | 'velvet'
-  const [showWelcome, setShowWelcome] = useState(savedConfig.hasStarted ? false : true);
+  const [showWelcome, setShowWelcome] = useState(true);
   const [showNewDesignModal, setShowNewDesignModal] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [dashboardTab, setDashboardTab] = useState('templates');
@@ -44,16 +44,16 @@ function App() {
   });
 
   const colors = [
-    { name: 'Red', hex: '#ef4444', class: 'bg-red-500' },
-    { name: 'Pink', hex: '#ec4899', class: 'bg-pink-500' },
-    { name: 'Purple', hex: '#9333ea', class: 'bg-purple-600' },
-    { name: 'Indigo', hex: '#4f46e5', class: 'bg-indigo-600' },
-    { name: 'Blue', hex: '#2563eb', class: 'bg-blue-600' },
-    { name: 'Light Blue', hex: '#60a5fa', class: 'bg-blue-400' },
-    { name: 'Cyan', hex: '#06b6d4', class: 'bg-cyan-500' },
-    { name: 'Dark Cyan', hex: '#0891b2', class: 'bg-cyan-600' },
-    { name: 'Teal', hex: '#14b8a6', class: 'bg-teal-500' },
-    { name: 'Green', hex: '#16a34a', class: 'bg-green-600' }
+    { name: 'B01', hex: '#976e52', image: '/colors/B01.png' },
+    { name: 'B02', hex: '#48433f', image: '/colors/B02.png' },
+    { name: 'B03', hex: '#7e7066', image: '/colors/B03.png' },
+    { name: 'B04', hex: '#6f423d', image: '/colors/B04.png' },
+    { name: 'B05', hex: '#422f2b', image: '/colors/B05.png' },
+    { name: 'B06', hex: '#8d8681', image: '/colors/B06.png' },
+    { name: 'B07', hex: '#2b333f', image: '/colors/B07.png' },
+    { name: 'B08', hex: '#87888b', image: '/colors/B08.png' },
+    { name: 'B09', hex: '#7f6a59', image: '/colors/B09.png' },
+    { name: 'B10', hex: '#9d7a73', image: '/colors/B10.png' }
   ];
   const [selectedColor, setSelectedColor] = useState(savedConfig.selectedColor || colors[2]);
 
@@ -152,7 +152,6 @@ function App() {
   };
 
   const handleRequestQuote = () => {
-    handleSaveDesign();
     if (screenshotHandlerRef.current) {
       screenshotHandlerRef.current.capture();
     }
@@ -262,9 +261,15 @@ function App() {
         <NewDesignModal
           onClose={() => setShowNewDesignModal(false)}
           onCreate={(title) => {
+            // Check for duplicate name
+            if (designHistory.some(d => d.name.toLowerCase() === title.toLowerCase())) {
+              alert(`A design named "${title}" already exists. Please use a unique name.`);
+              return;
+            }
+
             setProjectName(title);
             // Reset to default tray
-            setDimensions({
+            const defaultDims = {
               width: 1000,
               depth: 600,
               height: 100,
@@ -272,9 +277,28 @@ function App() {
               cols: 3,
               horizontalDividers: [300],
               verticalDividers: [333, 666],
-            });
+            };
+            setDimensions(defaultDims);
             // Clear placed modules for new design
             setPlacedModules([]);
+
+            // Save to design history immediately as Draft
+            const newDesign = {
+              id: `#${Math.floor(Math.random() * 90000) + 10000}`,
+              name: title,
+              date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }),
+              lastEdit: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' at ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+              status: 'Draft',
+              amount: '-',
+              config: {
+                dimensions: defaultDims,
+                finish,
+                selectedColor,
+                placedModules: []
+              }
+            };
+            setDesignHistory(prev => [newDesign, ...prev]);
+
             setShowNewDesignModal(false);
             setShowOverview(false); // Ensure sidebar is visible for adjustments
             setShowWelcome(false);
@@ -350,7 +374,7 @@ function App() {
                 enableRotate={viewMode === '3d'}
               />
 
-              <ambientLight intensity={0.5} />
+              <ambientLight intensity={1} />
               <pointLight position={[10, 10, 10]} intensity={1} castShadow />
               <spotLight position={[5, 10, 5]} angle={0.2} penumbra={1} intensity={2} castShadow />
 

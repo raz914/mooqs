@@ -1,19 +1,71 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-const TEXTURE_DENSITY = 1;
+
+// Convert a texture to grayscale so the material color can tint it cleanly
+// Returns a Promise that resolves once the image is fully decoded and processed
+async function desaturateTexture(texture, brightness = 1.0) {
+  if (!texture?.image) return texture;
+  const img = texture.image;
+
+  // Wait for image to be fully decoded before reading pixels
+  if (img.decode) {
+    try { await img.decode(); } catch (e) { /* already decoded */ }
+  }
+
+  if (!img.width || !img.height) return texture;
+
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      const adjusted = Math.min(255, gray * brightness);
+      data[i] = adjusted;
+      data[i + 1] = adjusted;
+      data[i + 2] = adjusted;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    const newTex = texture.clone();
+    newTex.image = canvas;
+    newTex.needsUpdate = true;
+    return newTex;
+  } catch (e) {
+    console.warn('Texture desaturation failed, using original:', e);
+    return texture;
+  }
+}
+
+// Hook to desaturate a texture asynchronously
+function useDesaturatedTexture(texture, brightness = 1.0) {
+  const [result, setResult] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    desaturateTexture(texture, brightness).then((tex) => {
+      if (!cancelled) setResult(tex);
+    });
+    return () => { cancelled = true; };
+  }, [texture, brightness]);
+  return result || texture; // fallback to original until processed
+}
 
 const TiledBox = ({
   args,
   position,
   map,
+  textureDensity = 0.2,
   materialType = 'physical',
   color = '#7E7E7E',
-  roughness = 0.72,
-  metalness = 0.08,
-  clearcoat = 0.28,
-  clearcoatRoughness = 0.32,
+  roughness = 1,
+  metalness = 0,
+  clearcoat = 0,
+  clearcoatRoughness = 0,
 }) => {
   const [x, y, z] = args;
 
@@ -34,7 +86,7 @@ const TiledBox = ({
     return faceDims.map(([u, v]) => {
       const tex = map.clone();
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(Math.max(u * TEXTURE_DENSITY, 0.01), Math.max(v * TEXTURE_DENSITY, 0.01));
+      tex.repeat.set(Math.max(u * textureDensity, 0.01), Math.max(v * textureDensity, 0.01));
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.minFilter = THREE.LinearMipmapLinearFilter;
       tex.magFilter = THREE.LinearFilter;
@@ -42,7 +94,7 @@ const TiledBox = ({
       tex.needsUpdate = true;
       return tex;
     });
-  }, [map, x, y, z]);
+  }, [map, textureDensity, x, y, z]);
 
   useEffect(() => {
     return () => {
@@ -95,23 +147,29 @@ const Tray = ({
   const thickness = 0.05;
 
   const finishTextures = useTexture({
-    leatherVelvetMap: '/texture/leatherVelvet.jpg',
-    leatherMap: '/texture/dadleather.jpg',
+    leatherMap: '/texture/leather.jpg',
     velvetMap: '/texture/velvet.jpg',
   });
 
-  const textureFor = (isInternal = false) => {
-    const isLeatherWithVelvet = finish === 'velvet';
-    if (isInternal && isLeatherWithVelvet) return finishTextures.velvetMap;
-    if (isLeatherWithVelvet) return finishTextures.leatherVelvetMap;
-    return finishTextures.leatherMap;
+  // Desaturate textures so selected color applies cleanly
+  const neutralLeather = useDesaturatedTexture(finishTextures.leatherMap, 1.3);
+  const neutralVelvet = useDesaturatedTexture(finishTextures.velvetMap, 2.5);
+
+  const texDensity = finish === 'velvet' ? 1 : 0.2;
+
+  const textureFor = () => {
+    return finish === 'velvet' ? neutralVelvet : neutralLeather;
   };
 
-  const internalMaterial = finish === 'velvet'
-    ? { materialType: 'standard', roughness: 0.95, metalness: 0.02 }
-    : { materialType: 'physical', roughness: 0.72, metalness: 0.08, clearcoat: 0.28, clearcoatRoughness: 0.32 };
+  // For leather: use same material everywhere (physical with no reflections)
+  // For velvet: internal surfaces use standard material (softer look)
+  const materialProps = { roughness: 1, metalness: 0.0, clearcoat: 0, clearcoatRoughness: 0 };
 
-  const externalMaterial = { materialType: 'physical', roughness: 0.72, metalness: 0.08, clearcoat: 0.28, clearcoatRoughness: 0.32 };
+  const internalMaterial = finish === 'velvet'
+    ? { materialType: 'standard', ...materialProps }
+    : { materialType: 'physical', ...materialProps };
+
+  const externalMaterial = { materialType: 'physical', ...materialProps };
 
   // Support both numeric divider positions and object dividers with spans.
   const hDivs = horizontalDividers.map((div) => (
@@ -127,6 +185,7 @@ const Tray = ({
         args={[w, thickness, d]}
         position={[0, -h / 2 + thickness / 2, 0]}
         map={textureFor(true)}
+        textureDensity={texDensity}
         color={color}
         {...internalMaterial}
       />
@@ -135,6 +194,7 @@ const Tray = ({
         args={[w, h, thickness]}
         position={[0, 0, d / 2 - thickness / 2]}
         map={textureFor(false)}
+        textureDensity={texDensity}
         color={color}
         {...externalMaterial}
       />
@@ -142,6 +202,7 @@ const Tray = ({
         args={[w, h, thickness]}
         position={[0, 0, -d / 2 + thickness / 2]}
         map={textureFor(false)}
+        textureDensity={texDensity}
         color={color}
         {...externalMaterial}
       />
@@ -149,6 +210,7 @@ const Tray = ({
         args={[thickness, h, d - thickness * 2]}
         position={[w / 2 - thickness / 2, 0, 0]}
         map={textureFor(false)}
+        textureDensity={texDensity}
         color={color}
         {...externalMaterial}
       />
@@ -156,6 +218,7 @@ const Tray = ({
         args={[thickness, h, d - thickness * 2]}
         position={[-w / 2 + thickness / 2, 0, 0]}
         map={textureFor(false)}
+        textureDensity={texDensity}
         color={color}
         {...externalMaterial}
       />
@@ -170,6 +233,7 @@ const Tray = ({
             args={[divWidth, h - thickness, thickness]}
             position={[xPos, thickness / 2, zPos]}
             map={textureFor(true)}
+            textureDensity={texDensity}
             color={color}
             {...internalMaterial}
           />
@@ -186,6 +250,7 @@ const Tray = ({
             args={[thickness, h - thickness, divDepth]}
             position={[xPos, thickness / 2, zPos]}
             map={textureFor(true)}
+            textureDensity={texDensity}
             color={color}
             {...internalMaterial}
           />
@@ -215,6 +280,7 @@ const Tray = ({
               args={[holderW, holderBaseH, holderD]}
               position={[mod.position[0], holderY, mod.position[2]]}
               map={textureFor(true)}
+              textureDensity={texDensity}
               color={color}
               {...internalMaterial}
             />
@@ -223,6 +289,7 @@ const Tray = ({
               args={[holderWallT, holderWallH, holderD]}
               position={[mod.position[0] - holderW / 2 + holderWallT / 2, holderWallY, mod.position[2]]}
               map={textureFor(true)}
+              textureDensity={texDensity}
               color={color}
               {...internalMaterial}
             />
@@ -231,6 +298,7 @@ const Tray = ({
               args={[holderWallT, holderWallH, holderD]}
               position={[mod.position[0] + holderW / 2 - holderWallT / 2, holderWallY, mod.position[2]]}
               map={textureFor(true)}
+              textureDensity={texDensity}
               color={color}
               {...internalMaterial}
             />
@@ -239,6 +307,7 @@ const Tray = ({
               args={[holderW - holderWallT * 2, holderWallH, holderWallT]}
               position={[mod.position[0], holderWallY, mod.position[2] + holderD / 2 - holderWallT / 2]}
               map={textureFor(true)}
+              textureDensity={texDensity}
               color={color}
               {...internalMaterial}
             />
@@ -247,6 +316,7 @@ const Tray = ({
               args={[holderW - holderWallT * 2, holderWallH, holderWallT]}
               position={[mod.position[0], holderWallY, mod.position[2] - holderD / 2 + holderWallT / 2]}
               map={textureFor(true)}
+              textureDensity={texDensity}
               color={color}
               {...internalMaterial}
             />
@@ -255,7 +325,7 @@ const Tray = ({
               args={[modW, modH, modD]}
               position={[mod.position[0], yPos, mod.position[2]]}
             >
-              <meshStandardMaterial color={mod.color} roughness={0.5} metalness={0.3} />
+              <meshStandardMaterial color={mod.color} roughness={1} metalness={0} />
             </Box>
           </group>
         );

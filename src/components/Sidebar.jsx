@@ -381,7 +381,12 @@ const Sidebar = ({
                                             setSelectedColor(colorObj);
                                         }
                                     }}
-                                    className={`w-10 h-10 rounded-xl shadow-inner cursor-pointer transition-all border-2 ${colorObj.class} ${selectedColor?.name === colorObj.name
+                                    style={{
+                                        backgroundImage: `url(${colorObj.image})`,
+                                        backgroundSize: 'cover',
+                                        backgroundPosition: 'center'
+                                    }}
+                                    className={`w-10 h-10 rounded-xl shadow-inner cursor-pointer transition-all border-2 ${selectedColor?.name === colorObj.name
                                         ? 'border-[4px] border-white shadow-[0_0_10px_rgba(255,255,255,0.2)] scale-110'
                                         : 'border-white/5 hover:border-white/20'}`}
                                 ></div>

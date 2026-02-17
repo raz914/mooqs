@@ -29,7 +29,15 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
             id: 3,
             name: `${t('watchTray')} 2:4`,
             image: img3,
-            dims: { width: 1000, height: 100, depth: 500, rows: 2, cols: 4 }
+            dims: {
+                width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
+                verticalDividers: [200, 400, 600, 800],
+                horizontalDividers: [
+                    { pos: 300, start: 200, end: 400 },
+                    { pos: 300, start: 400, end: 600 },
+                    { pos: 300, start: 600, end: 800 }
+                ]
+            }
         },
         {
             id: 4,
@@ -55,50 +63,37 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
                 ]
             }
         },
-        {
-            id: 6,
-            name: `${t('watchTray')} 2:4`,
-            image: img6,
-            dims: {
-                width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
-                verticalDividers: [200, 400, 600, 800],
-                horizontalDividers: [
-                    { pos: 300, start: 200, end: 400 },
-                    { pos: 300, start: 400, end: 600 },
-                    { pos: 300, start: 600, end: 800 }
-                ]
-            }
-        },
+
     ];
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#000000] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="relative w-full max-w-xl max-h-[85vh] bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 w-8 h-8 bg-white flex items-center justify-center text-black hover:bg-white/90 transition-colors z-10"
+                    className="absolute top-4 right-4 w-7 h-7 bg-white/10 rounded-full flex items-center justify-center text-white/60 hover:bg-white/20 transition-colors z-10"
                 >
-                    <X size={18} strokeWidth={3} />
+                    <X size={14} strokeWidth={2.5} />
                 </button>
 
-                <div className="px-12 pt-16 pb-10 flex flex-col items-center text-center">
+                <div className="px-8 pt-8 pb-4 flex flex-col items-center text-center">
                     {/* Official Logo Asset */}
-                    <div className="flex items-center justify-center mb-8">
-                        <img src={logo} alt="Mooqs Logo" className="h-20 w-auto" />
+                    <div className="flex items-center justify-center mb-4">
+                        <img src={logo} alt="Mooqs Logo" className="h-10 w-auto" />
                     </div>
 
-                    <h1 className="text-[34px] font-medium text-white mb-3 tracking-wide">{t('Welcome to Mooqs')}</h1>
-                    <p className="text-[13px] text-white/45 max-w-md leading-relaxed font-light">
+                    <h1 className="text-[22px] font-medium text-white mb-1.5 tracking-wide">{t('Welcome to Mooqs')}</h1>
+                    <p className="text-[11px] text-white/45 max-w-sm leading-relaxed font-light">
                         {t('Where modular design, refined materials, and personal style converge.')}
                     </p>
                 </div>
 
-                <div className="px-12 flex-1 overflow-y-auto no-scrollbar pb-12">
-                    <div className="max-w-4xl mx-auto">
-                        <h2 className="text-[14px] font-medium text-white/70 mb-8 text-left">{t('Mooqs Tray Template')}</h2>
+                <div className="px-8 flex-1 overflow-y-auto no-scrollbar pb-4">
+                    <div className="max-w-xl mx-auto">
+                        <h2 className="text-[11px] font-medium text-white/50 mb-4 text-left uppercase tracking-wider">{t('Mooqs Tray Template')}</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-3 gap-3">
                             {templates.map((template) => (
                                 <TemplateCard
                                     key={template.id}
@@ -111,20 +106,20 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
                 </div>
 
                 {/* Bottom Bar - Sticky at bottom of modal */}
-                <div className="px-12 py-8 flex justify-between items-center bg-[#000000] border-t border-white/5">
+                <div className="px-8 py-5 flex justify-between items-center bg-[#0a0a0a] border-t border-white/5">
                     <button
                         onClick={onViewAll}
-                        className="flex items-center gap-2 px-5 py-2 border border-white/20 rounded-full text-[12px] font-medium text-white/60 hover:bg-white/5 transition-all text-left"
+                        className="flex items-center gap-2 px-4 py-1.5 border border-white/20 rounded-full text-[11px] font-medium text-white/60 hover:bg-white/5 transition-all text-left"
                     >
-                        <Folder size={12} />
+                        <Folder size={11} />
                         {t('View All')}
                     </button>
 
                     <button
                         onClick={onCreateNew}
-                        className="bg-white text-black px-6 py-2 rounded-full flex items-center gap-3 font-bold text-[12px] hover:bg-white/90 transition-all shadow-lg text-left"
+                        className="bg-white text-black px-5 py-1.5 rounded-full flex items-center gap-2 font-bold text-[11px] hover:bg-white/90 transition-all shadow-lg text-left"
                     >
-                        <PlusSquare size={14} strokeWidth={2.5} />
+                        <PlusSquare size={12} strokeWidth={2.5} />
                         {t('Create New Tray')}
                     </button>
                 </div>
