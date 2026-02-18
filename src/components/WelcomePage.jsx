@@ -29,7 +29,7 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
             id: 3,
             name: `${t('watchTray')} 2:4`,
             image: img3,
-            dims: { width: 1000, height: 100, depth: 500, rows: 2, cols: 4 }
+            dims: { width: 1000, height: 100, depth: 500, rows: 2, cols: 4, horizontalDividers: [250], verticalDividers: [250, 500, 750] }
         },
         {
             id: 4,
@@ -43,7 +43,7 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
         },
         {
             id: 5,
-            name: `${t('watchTray')} 2:4`,
+            name: `${t('watchTray')} 6:4`,
             image: img5,
             dims: {
                 width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
@@ -57,8 +57,8 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
         },
         {
             id: 6,
-            name: `${t('watchTray')} 2:4`,
-            image: img6,
+            name: `${t('watchTray')} 6:4`,
+            image: img5,
             dims: {
                 width: 1000, height: 100, depth: 600, rows: 2, cols: 5,
                 verticalDividers: [200, 400, 600, 800],
@@ -72,31 +72,31 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
     ];
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-            <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#000000] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+        <div className="fixed top-[50px] left-0 right-0 bottom-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-6 lg:p-10">
+            <div className="relative w-full max-w-4xl max-h-full mb-4 bg-[#000000] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
                 {/* Close Button */}
                 <button
                     onClick={onClose}
                     className="absolute top-6 right-6 w-8 h-8 bg-white flex items-center justify-center text-black hover:bg-white/90 transition-colors z-10"
                 >
-                    <X size={18} strokeWidth={3} />
+                    <X size={20} strokeWidth={3} />
                 </button>
 
-                <div className="px-12 pt-16 pb-10 flex flex-col items-center text-center">
+                <div className="px-12 pt-10 lg:pt-14 pb-6 lg:pb-8 flex flex-col items-center text-center select-none shrink-0">
                     {/* Official Logo Asset */}
-                    <div className="flex items-center justify-center mb-8">
-                        <img src={logo} alt="Mooqs Logo" className="h-20 w-auto" />
+                    <div className="flex items-center justify-center mb-6">
+                        <img src={logo} alt="Mooqs Logo" className="h-12 w-auto" />
                     </div>
 
-                    <h1 className="text-[34px] font-medium text-white mb-3 tracking-wide">{t('Welcome to Mooqs')}</h1>
-                    <p className="text-[13px] text-white/45 max-w-md leading-relaxed font-light">
+                    <h1 className="text-[26px] lg:text-[32px] font-bold text-white mb-2 tracking-tight leading-none">{t('Welcome to Mooqs')}</h1>
+                    <p className="text-[12px] lg:text-[13px] text-white/45 max-w-[360px] leading-relaxed font-medium">
                         {t('Where modular design, refined materials, and personal style converge.')}
                     </p>
                 </div>
 
-                <div className="px-12 flex-1 overflow-y-auto no-scrollbar pb-12">
+                <div className="px-12 flex-1 pb-8 overflow-y-auto no-scrollbar">
                     <div className="max-w-4xl mx-auto">
-                        <h2 className="text-[14px] font-medium text-white/70 mb-8 text-left">{t('Mooqs Tray Template')}</h2>
+                        <h2 className="text-[13px] lg:text-[14px] font-bold text-white mb-6 text-left shrink-0">{t('Mooqs Tray Template')}</h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {templates.map((template) => (
@@ -114,17 +114,17 @@ const WelcomePage = ({ onSelectTemplate, onCreateNew, onClose, onViewAll }) => {
                 <div className="px-12 py-8 flex justify-between items-center bg-[#000000] border-t border-white/5">
                     <button
                         onClick={onViewAll}
-                        className="flex items-center gap-2 px-5 py-2 border border-white/20 rounded-full text-[12px] font-medium text-white/60 hover:bg-white/5 transition-all text-left"
+                        className="flex items-center gap-2 px-5 py-2.5 border border-white/20 rounded-full text-[12px] font-bold text-white/80 hover:bg-white/5 transition-all"
                     >
-                        <Folder size={12} />
+                        <Folder size={14} className="opacity-70" />
                         {t('View All')}
                     </button>
 
                     <button
                         onClick={onCreateNew}
-                        className="bg-white text-black px-6 py-2 rounded-full flex items-center gap-3 font-bold text-[12px] hover:bg-white/90 transition-all shadow-lg text-left"
+                        className="bg-white text-black px-6 py-2.5 rounded-full flex items-center gap-2.5 font-bold text-[12px] hover:bg-white/90 transition-all shadow-xl"
                     >
-                        <PlusSquare size={14} strokeWidth={2.5} />
+                        <PlusSquare size={16} strokeWidth={2.5} />
                         {t('Create New Tray')}
                     </button>
                 </div>
