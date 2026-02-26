@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, useTexture } from '@react-three/drei';
+import { Box, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+
+const clamp = (value, min, max) => {
+  if (min > max) return (min + max) / 2;
+  return Math.min(max, Math.max(min, value));
+};
 
 
 // Convert a texture to grayscale so the material color can tint it cleanly
@@ -131,6 +136,54 @@ const TiledBox = ({
   );
 };
 
+const WatchModuleModel = ({ modelScene, position, targetSize, scaleMultiplier = 1 }) => {
+  const { centeredModel, boundsSize } = useMemo(() => {
+    const modelInstance = modelScene.clone(true);
+    const box = new THREE.Box3().setFromObject(modelInstance);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    modelInstance.position.sub(center);
+    return { centeredModel: modelInstance, boundsSize: size };
+  }, [modelScene]);
+
+  useEffect(() => {
+    centeredModel.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+      }
+    });
+  }, [centeredModel]);
+
+  const scaleFactor = useMemo(() => {
+    const safeSize = {
+      x: Math.max(boundsSize.x, 0.0001),
+      y: Math.max(boundsSize.y, 0.0001),
+      z: Math.max(boundsSize.z, 0.0001),
+    };
+
+    const widthFit = targetSize.width / safeSize.x;
+    const heightFit = targetSize.height / safeSize.y;
+    const depthFit = targetSize.depth / safeSize.z;
+    return Math.min(widthFit, heightFit, depthFit) * scaleMultiplier;
+  }, [boundsSize.x, boundsSize.y, boundsSize.z, scaleMultiplier, targetSize.width, targetSize.height, targetSize.depth]);
+
+  const scaledHeight = boundsSize.y * scaleFactor;
+  const baseY = position[1];
+
+  return (
+    <group
+      position={[position[0], baseY + scaledHeight / 2, position[2]]}
+      scale={[scaleFactor, scaleFactor, scaleFactor]}
+      rotation={[0, Math.PI, 0]}
+    >
+      <primitive object={centeredModel} />
+    </group>
+  );
+};
+
 const Tray = ({
   width,
   depth,
@@ -145,17 +198,22 @@ const Tray = ({
   const d = depth / 100;
   const h = height / 100;
   const thickness = 0.05;
+  const thicknessMm = thickness * 100;
+  const dividerInsetMm = 0.1;
+  const dividerHalfMm = thicknessMm / 2;
 
   const finishTextures = useTexture({
     leatherMap: '/texture/leather.jpg',
     velvetMap: '/texture/velvet.jpg',
   });
+  const { scene: watchScene } = useGLTF('/models/watch.glb');
+  const WATCH_MODEL_SCALE = 5.35; // Increase/decrease to tune watch size quickly
 
   // Desaturate textures so selected color applies cleanly
   const neutralLeather = useDesaturatedTexture(finishTextures.leatherMap, 1.3);
   const neutralVelvet = useDesaturatedTexture(finishTextures.velvetMap, 2.5);
 
-  const texDensity = finish === 'velvet' ? 1 : 0.2;
+  const texDensity = finish === 'velvet' ? 0.3 : 0.2;
 
   const textureFor = () => {
     return finish === 'velvet' ? neutralVelvet : neutralLeather;
@@ -172,12 +230,45 @@ const Tray = ({
   const externalMaterial = { materialType: 'physical', ...materialProps };
 
   // Support both numeric divider positions and object dividers with spans.
-  const hDivs = horizontalDividers.map((div) => (
-    typeof div === 'number' ? { pos: div, start: 0, end: width } : div
-  ));
-  const vDivs = verticalDividers.map((div) => (
-    typeof div === 'number' ? { pos: div, start: 0, end: depth } : div
-  ));
+  // Keep dividers slightly inset from walls so their faces never become coplanar.
+  const hStartMin = thicknessMm + dividerInsetMm;
+  const hEndMax = width - thicknessMm - dividerInsetMm;
+  const hPosMin = thicknessMm + dividerHalfMm + dividerInsetMm;
+  const hPosMax = depth - thicknessMm - dividerHalfMm - dividerInsetMm;
+  const vStartMin = thicknessMm + dividerInsetMm;
+  const vEndMax = depth - thicknessMm - dividerInsetMm;
+  const vPosMin = thicknessMm + dividerHalfMm + dividerInsetMm;
+  const vPosMax = width - thicknessMm - dividerHalfMm - dividerInsetMm;
+
+  const hDivs = horizontalDividers
+    .map((div) => {
+      const source = typeof div === 'number'
+        ? { pos: div, start: hStartMin, end: hEndMax }
+        : div;
+      const start = clamp(source.start ?? hStartMin, hStartMin, hEndMax);
+      const end = clamp(source.end ?? hEndMax, hStartMin, hEndMax);
+      return {
+        pos: clamp(source.pos ?? depth / 2, hPosMin, hPosMax),
+        start: Math.min(start, end),
+        end: Math.max(start, end),
+      };
+    })
+    .filter((div) => div.end - div.start > 0.5);
+
+  const vDivs = verticalDividers
+    .map((div) => {
+      const source = typeof div === 'number'
+        ? { pos: div, start: vStartMin, end: vEndMax }
+        : div;
+      const start = clamp(source.start ?? vStartMin, vStartMin, vEndMax);
+      const end = clamp(source.end ?? vEndMax, vStartMin, vEndMax);
+      return {
+        pos: clamp(source.pos ?? width / 2, vPosMin, vPosMax),
+        start: Math.min(start, end),
+        end: Math.max(start, end),
+      };
+    })
+    .filter((div) => div.end - div.start > 0.5);
 
   return (
     <group>
@@ -321,17 +412,32 @@ const Tray = ({
               {...internalMaterial}
             />
 
-            <Box
-              args={[modW, modH, modD]}
-              position={[mod.position[0], yPos, mod.position[2]]}
-            >
-              <meshStandardMaterial color={mod.color} roughness={1} metalness={0} />
-            </Box>
+            {mod.id === 'watch_pad' ? (
+              <WatchModuleModel
+                modelScene={watchScene}
+                position={[mod.position[0], yPos - modH / 2, mod.position[2]]}
+                targetSize={{
+                  width: modW * 0.95,
+                  height: modH * 0.95,
+                  depth: modD * 0.95,
+                }}
+                scaleMultiplier={WATCH_MODEL_SCALE}
+              />
+            ) : (
+              <Box
+                args={[modW, modH, modD]}
+                position={[mod.position[0], yPos, mod.position[2]]}
+              >
+                <meshStandardMaterial color={mod.color} roughness={1} metalness={0} />
+              </Box>
+            )}
           </group>
         );
       })}
     </group>
   );
 };
+
+useGLTF.preload('/models/watch.glb');
 
 export default Tray;

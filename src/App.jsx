@@ -354,12 +354,14 @@ function App() {
               setShowModuleSelector(false);
             }}
             onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
           />
         )}
 
-        <main className="flex-1 relative bg-[#0a0a0a]">
+        <main className="flex-1 relative bg-white">
           <Canvas shadows gl={{ preserveDrawingBuffer: true }}>
             <Suspense fallback={null}>
+              <color attach="background" args={['#ffffff']} />
               <PerspectiveCamera
                 makeDefault
                 position={viewMode === '3d' ? [15, 15, 15] : [0, 20, 0]}
@@ -399,6 +401,7 @@ function App() {
                   placedModules={placedModules}
                   draggedModule={draggedModule}
                   onDrop={handleCellDrop}
+                  onDragEnd={handleDragEnd}
                 />
               </group>
 
@@ -443,6 +446,4 @@ function App() {
 }
 
 export default App;
-
-
 

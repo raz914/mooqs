@@ -1,17 +1,18 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const ModuleSelector = ({ onClose, onSelect, onDragStart }) => {
+const ModuleSelector = ({ onClose, onSelect, onDragStart, onDragEnd }) => {
     const modules = [
         { id: 'rings', name: 'Rings', width: 150, depth: 100, height: 40, color: '#E11D48' },
         { id: 'glasses', name: 'Glasses', width: 200, depth: 150, height: 60, color: '#7C3AED' },
-        { id: 'watch_pad', name: 'Watch pad', width: 120, depth: 120, height: 30, color: '#2563EB' },
+        { id: 'watch_pad', name: 'Watch 1', width: 120, depth: 120, height: 30, color: '#2563EB' },
         { id: 'glasses_2', name: 'Glasses 2', width: 180, depth: 130, height: 50, color: '#059669' },
-        { id: 'watch_pad_2', name: 'Watch pad 2', width: 100, depth: 100, height: 25, color: '#D97706' },
+        { id: 'watch_pad_2', name: 'Watch ', width: 100, depth: 100, height: 25, color: '#D97706' },
     ];
 
     const handleDragStart = (e, mod) => {
         e.dataTransfer.setData('application/json', JSON.stringify(mod));
+        e.dataTransfer.setData('text/plain', mod.id);
         e.dataTransfer.effectAllowed = 'move';
         if (onDragStart) onDragStart(mod);
     };
@@ -31,6 +32,7 @@ const ModuleSelector = ({ onClose, onSelect, onDragStart }) => {
                         className="group cursor-grab active:cursor-grabbing"
                         draggable
                         onDragStart={(e) => handleDragStart(e, mod)}
+                        onDragEnd={onDragEnd}
                         onClick={() => onSelect(mod)}
                     >
                         <div
@@ -51,4 +53,3 @@ const ModuleSelector = ({ onClose, onSelect, onDragStart }) => {
 };
 
 export default ModuleSelector;
-
