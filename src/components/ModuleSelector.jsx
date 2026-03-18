@@ -1,14 +1,9 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { MODULE_LIBRARY } from '../config/modules';
 
 const ModuleSelector = ({ onClose, onSelect, onDragStart, onDragEnd }) => {
-    const modules = [
-        { id: 'rings', name: 'Rings', width: 150, depth: 100, height: 40, color: '#E11D48' },
-        { id: 'glasses', name: 'Glasses', width: 200, depth: 150, height: 60, color: '#7C3AED' },
-        { id: 'watch_pad', name: 'Watch 1', width: 120, depth: 120, height: 30, color: '#2563EB' },
-        { id: 'glasses_2', name: 'Glasses 2', width: 180, depth: 130, height: 50, color: '#059669' },
-        { id: 'watch_pad_2', name: 'Watch ', width: 100, depth: 100, height: 25, color: '#D97706' },
-    ];
+    const modules = MODULE_LIBRARY;
 
     const handleDragStart = (e, mod) => {
         e.dataTransfer.setData('application/json', JSON.stringify(mod));
@@ -36,15 +31,21 @@ const ModuleSelector = ({ onClose, onSelect, onDragStart, onDragEnd }) => {
                         onClick={() => onSelect(mod)}
                     >
                         <div
-                            className="aspect-square rounded overflow-hidden mb-2 border border-white/5 group-hover:border-white/20 transition-all relative flex items-center justify-center"
-                            style={{ backgroundColor: mod.color + '33' }}
+                            className="aspect-square rounded overflow-hidden mb-2 border border-white/5 group-hover:border-white/20 transition-all relative flex flex-col items-center justify-center px-3"
+                            style={{ backgroundColor: mod.color + '24' }}
                         >
                             <div
-                                className="w-3/4 h-3/4 rounded"
+                                className={`rounded ${mod.renderType === 'model' ? 'w-10 h-10' : 'w-12 h-8'}`}
                                 style={{ backgroundColor: mod.color }}
                             />
+                            <span className="mt-2 text-[9px] uppercase tracking-[0.18em] text-white/50">
+                                {mod.renderType === 'model' ? '3D model' : 'Geometry'}
+                            </span>
                         </div>
                         <p className="text-[11px] text-center text-white/70 group-hover:text-white transition-colors">{mod.name}</p>
+                        <p className="text-[9px] text-center text-white/35 mt-1">
+                            {mod.width} x {mod.depth} x {mod.height} mm
+                        </p>
                     </div>
                 ))}
             </div>

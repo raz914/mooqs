@@ -17,9 +17,12 @@ const Sidebar = ({
     setFinish,
     topCover,
     setTopCover,
+    placedModules = [],
+    onRemoveModule,
 }) => {
     const { t } = useLanguage();
     const [unit, setUnit] = useState('mm'); // 'mm' | 'cm'
+    const [expandedModuleId, setExpandedModuleId] = useState(null);
 
     const toDisplay = (val, key) => {
         if (key === 'rows' || key === 'cols') return val;
@@ -332,35 +335,73 @@ const Sidebar = ({
                         </button>
                     </div>
 
-                    <div className="bg-black p-3 rounded border border-white/5">
-                        <div className="flex justify-between items-center mb-3">
-                            <span className="text-[11px] text-white/90">{t('glasses')} 01 <Maximize size={10} className="inline ml-1 opacity-40" /></span>
-                            <ChevronDown size={14} className="opacity-40" />
+                    {placedModules.length === 0 ? (
+                        <div className="bg-black p-4 rounded border border-white/5 text-center">
+                            <p className="text-[12px] text-white/40">{t('noModulesAdded') || 'No modules added'}</p>
+                            <p className="text-[10px] text-white/25 mt-1">{t('addModuleHint') || 'Click + to add modules to the tray'}</p>
                         </div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="text-[9px] text-white/30">{t('finish')}</span>
-                            <div className="flex gap-1 p-0.5 bg-black/40 rounded-full border border-white/5">
-                                <button
-                                    type="button"
-                                    onClick={() => setFinish('velvet')}
-                                    className={`text-[8px] px-2 py-0.5 rounded-full font-bold transition-colors ${finish === 'velvet' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
-                                >
-                                    {t('leatherWithVelvet')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setFinish('leather')}
-                                    className={`text-[8px] px-2 py-0.5 rounded-full font-bold transition-colors ${finish === 'leather' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
-                                >
-                                    {t('fullLeather')}
-                                </button>
-                            </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {placedModules.map((mod, index) => {
+                                const isExpanded = expandedModuleId === mod.instanceId;
+                                const displayName = mod.name || mod.id || 'Module';
+                                const num = (index + 1).toString().padStart(2, '0');
+                                const w = mod.width ?? 0;
+                                const h = mod.height ?? 0;
+                                const d = mod.depth ?? 0;
+                                return (
+                                    <div key={mod.instanceId} className="bg-black p-3 rounded border border-white/5">
+                                        <div
+                                            className="flex justify-between items-center cursor-pointer"
+                                            onClick={() => setExpandedModuleId(isExpanded ? null : mod.instanceId)}
+                                        >
+                                            <span className="text-[11px] text-white/90">{displayName} {num} <Maximize size={10} className="inline ml-1 opacity-40" /></span>
+                                            <div className="flex items-center gap-1">
+                                                {onRemoveModule && (
+                                                    <Trash2
+                                                        size={12}
+                                                        className="text-white/30 hover:text-red-400 transition-colors shrink-0"
+                                                        onClick={(e) => { e.stopPropagation(); onRemoveModule(mod.instanceId); }}
+                                                        aria-label={t('remove') || 'Remove'}
+                                                    />
+                                                )}
+                                                <ChevronDown size={14} className={`opacity-40 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                            </div>
+                                        </div>
+                                        {isExpanded && (
+                                            <>
+                                                <div className="flex items-center gap-2 mt-3 mb-3">
+                                                    <span className="text-[9px] text-white/30">{t('finish')}</span>
+                                                    <div className="flex gap-1 p-0.5 bg-black/40 rounded-full border border-white/5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setFinish('velvet'); }}
+                                                            className={`text-[8px] px-2 py-0.5 rounded-full font-bold transition-colors ${finish === 'velvet' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
+                                                        >
+                                                            {t('leatherWithVelvet')}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); setFinish('leather'); }}
+                                                            className={`text-[8px] px-2 py-0.5 rounded-full font-bold transition-colors ${finish === 'leather' ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
+                                                        >
+                                                            {t('fullLeather')}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between text-[9px] text-white/30 uppercase tracking-wider">
+                                                    <div className="flex items-center gap-1 flex-wrap">
+                                                        {t('size')} <span className="text-white/60 ml-1">W</span> <span className="bg-white/10 px-1 rounded text-white">{Math.round(w)}</span> <span className="text-white/60 ml-1">H</span> <span className="bg-white/10 px-1 rounded text-white">{Math.round(h)}</span> <span className="text-white/60 ml-1">D</span> <span className="bg-white/10 px-1 rounded text-white">{Math.round(d)}</span>
+                                                    </div>
+                                                    <RotateCcw size={10} className="opacity-40" />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="flex items-center justify-between text-[9px] text-white/30 uppercase tracking-wider">
-                            <div className="flex items-center gap-1">{t('size')} <span className="text-white/60 ml-1">W</span> <span className="bg-white/10 px-1 rounded text-white">02</span> <span className="text-white/60 ml-1">H</span> <span className="bg-white/10 px-1 rounded text-white ">02</span> <span className="text-white/60 ml-1">D</span> <span className="bg-white/10 px-1 rounded text-white ">02</span></div>
-                            <RotateCcw size={10} />
-                        </div>
-                    </div>
+                    )}
                 </section>
 
                 {/* Color Palette */}

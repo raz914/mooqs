@@ -1,22 +1,39 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, useGLTF, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+import { getModuleDefinition } from '../config/modules';
 
 const clamp = (value, min, max) => {
   if (min > max) return (min + max) / 2;
   return Math.min(max, Math.max(min, value));
 };
 
+const MODEL_PATHS = {
+  ringStrokes: '/models/modules/ringstrokes.glb',
+  holesOnly: '/models/modules/holesonly.glb',
+  lipWithHoles: '/models/modules/lipwithholes.glb',
+  lipNoHoles: '/models/modules/lipNoholes.glb',
+  noLipNoHoles: '/models/modules/nolipnoholes.glb',
+};
 
-// Convert a texture to grayscale so the material color can tint it cleanly
-// Returns a Promise that resolves once the image is fully decoded and processed
+const resolveModuleTextureRule = (rule, finish) => {
+  if (rule === 'onlyVelvet') return 'velvet';
+  if (rule === 'onlyLeather') return 'leather';
+  if (rule === 'outsideLeatherBottomVelvet') return 'leather';
+  if (rule === 'leatherTopVelvetBottom') return 'leather';
+  return finish === 'velvet' ? 'velvet' : 'leather';
+};
+
 async function desaturateTexture(texture, brightness = 1.0) {
   if (!texture?.image) return texture;
   const img = texture.image;
 
-  // Wait for image to be fully decoded before reading pixels
   if (img.decode) {
-    try { await img.decode(); } catch (e) { /* already decoded */ }
+    try {
+      await img.decode();
+    } catch {
+      // The image may already be decoded.
+    }
   }
 
   if (!img.width || !img.height) return texture;
@@ -29,6 +46,7 @@ async function desaturateTexture(texture, brightness = 1.0) {
     ctx.drawImage(img, 0, 0);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
+
     for (let i = 0; i < data.length; i += 4) {
       const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
       const adjusted = Math.min(255, gray * brightness);
@@ -36,28 +54,34 @@ async function desaturateTexture(texture, brightness = 1.0) {
       data[i + 1] = adjusted;
       data[i + 2] = adjusted;
     }
+
     ctx.putImageData(imageData, 0, 0);
     const newTex = texture.clone();
     newTex.image = canvas;
     newTex.needsUpdate = true;
     return newTex;
-  } catch (e) {
-    console.warn('Texture desaturation failed, using original:', e);
+  } catch (error) {
+    console.warn('Texture desaturation failed, using original:', error);
     return texture;
   }
 }
 
-// Hook to desaturate a texture asynchronously
 function useDesaturatedTexture(texture, brightness = 1.0) {
   const [result, setResult] = useState(null);
+
   useEffect(() => {
     let cancelled = false;
+
     desaturateTexture(texture, brightness).then((tex) => {
       if (!cancelled) setResult(tex);
     });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [texture, brightness]);
-  return result || texture; // fallback to original until processed
+
+  return result || texture;
 }
 
 const TiledBox = ({
@@ -74,11 +98,9 @@ const TiledBox = ({
 }) => {
   const [x, y, z] = args;
 
-  // Clone and tile texture per face so each side uses correct UV scale.
   const faceTextures = useMemo(() => {
     if (!map) return [null, null, null, null, null, null];
 
-    // Box face order: +X, -X, +Y, -Y, +Z, -Z
     const faceDims = [
       [z, y],
       [z, y],
@@ -136,8 +158,18 @@ const TiledBox = ({
   );
 };
 
-const WatchModuleModel = ({ modelScene, position, targetSize, scaleMultiplier = 1 }) => {
+const FittedModuleModel = ({
+  modelScene,
+  position,
+  targetSize,
+  color = '#7E7E7E',
+  textureRule = 'leather',
+  textureMaps,
+  rotation = [0, 0, 0],
+}) => {
   const { centeredModel, boundsSize } = useMemo(() => {
+    if (!modelScene) return { centeredModel: null, boundsSize: new THREE.Vector3(1, 1, 1) };
+
     const modelInstance = modelScene.clone(true);
     const box = new THREE.Box3().setFromObject(modelInstance);
     const size = new THREE.Vector3();
@@ -145,44 +177,146 @@ const WatchModuleModel = ({ modelScene, position, targetSize, scaleMultiplier = 
     box.getSize(size);
     box.getCenter(center);
     modelInstance.position.sub(center);
-    return { centeredModel: modelInstance, boundsSize: size };
+
+    return {
+      centeredModel: modelInstance,
+      boundsSize: size,
+    };
   }, [modelScene]);
 
   useEffect(() => {
+    if (!centeredModel || !textureMaps) return undefined;
+
+    const createdMaterials = [];
+    const leatherMap = textureMaps.leather ?? textureMaps.velvet;
+    const velvetMap = textureMaps.velvet ?? textureMaps.leather;
+    const mapToUse = textureRule === 'velvet' ? velvetMap : leatherMap;
+
+    if (!mapToUse) {
+      return undefined;
+    }
+
     centeredModel.traverse((node) => {
       if (node.isMesh) {
+        const isVelvet = textureRule === 'velvet';
+        const MaterialCtor = isVelvet ? THREE.MeshStandardMaterial : THREE.MeshPhysicalMaterial;
+        const baseMaterial = new MaterialCtor({
+          roughness: 1,
+          metalness: 0,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
+          color,
+        });
+
+        baseMaterial.map = mapToUse;
+        if (baseMaterial.map) {
+          baseMaterial.map.colorSpace = THREE.SRGBColorSpace;
+        }
+        baseMaterial.needsUpdate = true;
+        node.material = baseMaterial;
         node.castShadow = true;
         node.receiveShadow = true;
+        createdMaterials.push(baseMaterial);
       }
     });
-  }, [centeredModel]);
 
-  const scaleFactor = useMemo(() => {
+    return () => {
+      createdMaterials.forEach((material) => material.dispose());
+    };
+  }, [centeredModel, color, textureMaps, textureRule]);
+
+  const scaleVector = useMemo(() => {
     const safeSize = {
       x: Math.max(boundsSize.x, 0.0001),
       y: Math.max(boundsSize.y, 0.0001),
       z: Math.max(boundsSize.z, 0.0001),
     };
 
-    const widthFit = targetSize.width / safeSize.x;
-    const heightFit = targetSize.height / safeSize.y;
-    const depthFit = targetSize.depth / safeSize.z;
-    return Math.min(widthFit, heightFit, depthFit) * scaleMultiplier;
-  }, [boundsSize.x, boundsSize.y, boundsSize.z, scaleMultiplier, targetSize.width, targetSize.height, targetSize.depth]);
+    return [
+      targetSize.width / safeSize.x,
+      targetSize.height / safeSize.y,
+      targetSize.depth / safeSize.z,
+    ];
+  }, [boundsSize.x, boundsSize.y, boundsSize.z, targetSize.depth, targetSize.height, targetSize.width]);
 
-  const scaledHeight = boundsSize.y * scaleFactor;
+  if (!centeredModel) return null;
+
+  const scaledHeight = boundsSize.y * scaleVector[1];
   const baseY = position[1];
 
   return (
     <group
       position={[position[0], baseY + scaledHeight / 2, position[2]]}
-      scale={[scaleFactor, scaleFactor, scaleFactor]}
-      rotation={[0, Math.PI, 0]}
+      scale={scaleVector}
+      rotation={rotation}
     >
       <primitive object={centeredModel} />
     </group>
   );
 };
+
+const HolderShell = ({
+  centerX,
+  centerZ,
+  texture,
+  textureDensity,
+  color,
+  materialProps,
+  width,
+  depth,
+  baseHeight,
+  wallThickness,
+  wallHeight,
+  baseY,
+  wallY,
+}) => (
+  <>
+    <TiledBox
+      args={[width, baseHeight, depth]}
+      position={[centerX, baseY, centerZ]}
+      map={texture}
+      textureDensity={textureDensity}
+      color={color}
+      {...materialProps}
+    />
+
+    <TiledBox
+      args={[wallThickness, wallHeight, depth]}
+      position={[centerX - width / 2 + wallThickness / 2, wallY, centerZ]}
+      map={texture}
+      textureDensity={textureDensity}
+      color={color}
+      {...materialProps}
+    />
+
+    <TiledBox
+      args={[wallThickness, wallHeight, depth]}
+      position={[centerX + width / 2 - wallThickness / 2, wallY, centerZ]}
+      map={texture}
+      textureDensity={textureDensity}
+      color={color}
+      {...materialProps}
+    />
+
+    <TiledBox
+      args={[width - wallThickness * 2, wallHeight, wallThickness]}
+      position={[centerX, wallY, centerZ + depth / 2 - wallThickness / 2]}
+      map={texture}
+      textureDensity={textureDensity}
+      color={color}
+      {...materialProps}
+    />
+
+    <TiledBox
+      args={[width - wallThickness * 2, wallHeight, wallThickness]}
+      position={[centerX, wallY, centerZ - depth / 2 + wallThickness / 2]}
+      map={texture}
+      textureDensity={textureDensity}
+      color={color}
+      {...materialProps}
+    />
+  </>
+);
 
 const Tray = ({
   width,
@@ -206,31 +340,37 @@ const Tray = ({
     leatherMap: '/texture/leather.jpg',
     velvetMap: '/texture/velvet.jpg',
   });
-  const { scene: watchScene } = useGLTF('/models/watch.glb');
-  const WATCH_MODEL_SCALE = 5.35; // Increase/decrease to tune watch size quickly
+  const { scene: ringStrokesScene } = useGLTF(MODEL_PATHS.ringStrokes);
+  const { scene: holesOnlyScene } = useGLTF(MODEL_PATHS.holesOnly);
+  const { scene: lipWithHolesScene } = useGLTF(MODEL_PATHS.lipWithHoles);
+  const { scene: lipNoHolesScene } = useGLTF(MODEL_PATHS.lipNoHoles);
+  const { scene: noLipNoHolesScene } = useGLTF(MODEL_PATHS.noLipNoHoles);
 
-  // Desaturate textures so selected color applies cleanly
+  const moduleScenes = useMemo(() => ({
+    [MODEL_PATHS.ringStrokes]: ringStrokesScene,
+    [MODEL_PATHS.holesOnly]: holesOnlyScene,
+    [MODEL_PATHS.lipWithHoles]: lipWithHolesScene,
+    [MODEL_PATHS.lipNoHoles]: lipNoHolesScene,
+    [MODEL_PATHS.noLipNoHoles]: noLipNoHolesScene,
+  }), [holesOnlyScene, lipNoHolesScene, lipWithHolesScene, noLipNoHolesScene, ringStrokesScene]);
+
   const neutralLeather = useDesaturatedTexture(finishTextures.leatherMap, 1.3);
   const neutralVelvet = useDesaturatedTexture(finishTextures.velvetMap, 2.5);
-
   const texDensity = finish === 'velvet' ? 0.3 : 0.2;
+  const textureFor = () => (finish === 'velvet' ? neutralVelvet : neutralLeather);
+  const textureMaps = useMemo(() => ({
+    leather: neutralLeather,
+    velvet: neutralVelvet,
+  }), [neutralLeather, neutralVelvet]);
 
-  const textureFor = () => {
-    return finish === 'velvet' ? neutralVelvet : neutralLeather;
-  };
-
-  // For leather: use same material everywhere (physical with no reflections)
-  // For velvet: internal surfaces use standard material (softer look)
   const materialProps = { roughness: 1, metalness: 0.0, clearcoat: 0, clearcoatRoughness: 0 };
-
+  const velvetModuleMaterial = { materialType: 'standard', ...materialProps };
+  const leatherModuleMaterial = { materialType: 'physical', ...materialProps };
   const internalMaterial = finish === 'velvet'
-    ? { materialType: 'standard', ...materialProps }
-    : { materialType: 'physical', ...materialProps };
-
+    ? velvetModuleMaterial
+    : leatherModuleMaterial;
   const externalMaterial = { materialType: 'physical', ...materialProps };
 
-  // Support both numeric divider positions and object dividers with spans.
-  // Keep dividers slightly inset from walls so their faces never become coplanar.
   const hStartMin = thicknessMm + dividerInsetMm;
   const hEndMax = width - thicknessMm - dividerInsetMm;
   const hPosMin = thicknessMm + dividerHalfMm + dividerInsetMm;
@@ -270,12 +410,14 @@ const Tray = ({
     })
     .filter((div) => div.end - div.start > 0.5);
 
+  const trayFloorY = -h / 2 + thickness;
+
   return (
     <group>
       <TiledBox
         args={[w, thickness, d]}
         position={[0, -h / 2 + thickness / 2, 0]}
-        map={textureFor(true)}
+        map={textureFor()}
         textureDensity={texDensity}
         color={color}
         {...internalMaterial}
@@ -284,7 +426,7 @@ const Tray = ({
       <TiledBox
         args={[w, h, thickness]}
         position={[0, 0, d / 2 - thickness / 2]}
-        map={textureFor(false)}
+        map={textureFor()}
         textureDensity={texDensity}
         color={color}
         {...externalMaterial}
@@ -292,7 +434,7 @@ const Tray = ({
       <TiledBox
         args={[w, h, thickness]}
         position={[0, 0, -d / 2 + thickness / 2]}
-        map={textureFor(false)}
+        map={textureFor()}
         textureDensity={texDensity}
         color={color}
         {...externalMaterial}
@@ -300,7 +442,7 @@ const Tray = ({
       <TiledBox
         args={[thickness, h, d - thickness * 2]}
         position={[w / 2 - thickness / 2, 0, 0]}
-        map={textureFor(false)}
+        map={textureFor()}
         textureDensity={texDensity}
         color={color}
         {...externalMaterial}
@@ -308,7 +450,7 @@ const Tray = ({
       <TiledBox
         args={[thickness, h, d - thickness * 2]}
         position={[-w / 2 + thickness / 2, 0, 0]}
-        map={textureFor(false)}
+        map={textureFor()}
         textureDensity={texDensity}
         color={color}
         {...externalMaterial}
@@ -323,7 +465,7 @@ const Tray = ({
             key={`h-div-${i}`}
             args={[divWidth, h - thickness, thickness]}
             position={[xPos, thickness / 2, zPos]}
-            map={textureFor(true)}
+            map={textureFor()}
             textureDensity={texDensity}
             color={color}
             {...internalMaterial}
@@ -340,7 +482,7 @@ const Tray = ({
             key={`v-div-${i}`}
             args={[thickness, h - thickness, divDepth]}
             position={[xPos, thickness / 2, zPos]}
-            map={textureFor(true)}
+            map={textureFor()}
             textureDensity={texDensity}
             color={color}
             {...internalMaterial}
@@ -349,86 +491,89 @@ const Tray = ({
       })}
 
       {placedModules.map((mod) => {
-        const modW = mod.width / 100;
-        const modD = mod.depth / 100;
-        const modH = mod.height / 100;
-        const yPos = -h / 2 + thickness + modH / 2;
+        const definition = getModuleDefinition(mod.id);
+        const resolvedModule = {
+          ...definition,
+          ...mod,
+          width: mod.width ?? definition?.width ?? 100,
+          depth: mod.depth ?? definition?.depth ?? 100,
+          height: mod.height ?? definition?.height ?? 40,
+          color: mod.color ?? definition?.color ?? '#9CA3AF',
+        };
 
+        const resolvedTextureRule = resolveModuleTextureRule(resolvedModule.textureRule, finish);
+        const modW = resolvedModule.width / 100;
+        const modD = resolvedModule.depth / 100;
+        const modH = resolvedModule.height / 100;
+        const cellW = Math.max(modW, (resolvedModule.cellWidth || resolvedModule.width) / 100);
+        const cellD = Math.max(modD, (resolvedModule.cellDepth || resolvedModule.depth) / 100);
         const holderInset = 0.01;
-        const cellW = Math.max(modW, (mod.cellWidth || mod.width) / 100);
-        const cellD = Math.max(modD, (mod.cellDepth || mod.depth) / 100);
+        const coverInset = 0.01;
+        const trayTopY = h / 2;
+        const coverLift = 0.002;
+        const strokesPushDown = 0.5;
+        const isStrokesModule = mod.id === 'rings_4_strokes' || mod.id === 'rings_1_stroke';
+        const usesHolderShell = resolvedModule.renderType === 'geometry';
+        const isCoverModule = resolvedModule.mountStyle === 'cover';
         const holderBaseH = Math.max(0.008, modH * 0.12);
         const holderWallT = Math.max(0.007, Math.min(cellW, cellD) * 0.06);
         const holderWallH = Math.max(0.02, modH * 0.55);
         const holderW = Math.max(modW + holderWallT * 2, cellW - holderInset * 2);
         const holderD = Math.max(modD + holderWallT, cellD - holderInset * 2);
-        const holderY = -h / 2 + thickness + holderBaseH / 2;
-        const holderWallY = holderY + holderBaseH / 2 + holderWallH / 2;
+        const holderBaseY = trayFloorY + holderBaseH / 2;
+        const holderWallY = trayFloorY + holderBaseH + holderWallH / 2;
+        const contentBaseY = isCoverModule
+          ? trayTopY + coverLift - (isStrokesModule ? strokesPushDown : 0)
+          : (usesHolderShell ? trayFloorY + holderBaseH : trayFloorY);
+        const modelScene = resolvedModule.modelPath ? moduleScenes[resolvedModule.modelPath] : null;
+        const targetPadding = isCoverModule ? 1 : (resolvedModule.renderType === 'model' ? 0.94 : 1);
+        const contentSize = {
+          width: (isCoverModule ? Math.max(cellW - coverInset * 2, 0.01) : modW) * targetPadding,
+          depth: (isCoverModule ? Math.max(cellD - coverInset * 2, 0.01) : modD) * targetPadding,
+          height: modH * targetPadding,
+        };
+        const holderTexture = resolvedTextureRule === 'velvet' ? neutralVelvet : neutralLeather;
+        const holderMaterialProps = resolvedTextureRule === 'velvet'
+          ? velvetModuleMaterial
+          : leatherModuleMaterial;
 
         return (
           <group key={mod.instanceId}>
-            <TiledBox
-              args={[holderW, holderBaseH, holderD]}
-              position={[mod.position[0], holderY, mod.position[2]]}
-              map={textureFor(true)}
-              textureDensity={texDensity}
-              color={color}
-              {...internalMaterial}
-            />
-
-            <TiledBox
-              args={[holderWallT, holderWallH, holderD]}
-              position={[mod.position[0] - holderW / 2 + holderWallT / 2, holderWallY, mod.position[2]]}
-              map={textureFor(true)}
-              textureDensity={texDensity}
-              color={color}
-              {...internalMaterial}
-            />
-
-            <TiledBox
-              args={[holderWallT, holderWallH, holderD]}
-              position={[mod.position[0] + holderW / 2 - holderWallT / 2, holderWallY, mod.position[2]]}
-              map={textureFor(true)}
-              textureDensity={texDensity}
-              color={color}
-              {...internalMaterial}
-            />
-
-            <TiledBox
-              args={[holderW - holderWallT * 2, holderWallH, holderWallT]}
-              position={[mod.position[0], holderWallY, mod.position[2] + holderD / 2 - holderWallT / 2]}
-              map={textureFor(true)}
-              textureDensity={texDensity}
-              color={color}
-              {...internalMaterial}
-            />
-
-            <TiledBox
-              args={[holderW - holderWallT * 2, holderWallH, holderWallT]}
-              position={[mod.position[0], holderWallY, mod.position[2] - holderD / 2 + holderWallT / 2]}
-              map={textureFor(true)}
-              textureDensity={texDensity}
-              color={color}
-              {...internalMaterial}
-            />
-
-            {mod.id === 'watch_pad' ? (
-              <WatchModuleModel
-                modelScene={watchScene}
-                position={[mod.position[0], yPos - modH / 2, mod.position[2]]}
-                targetSize={{
-                  width: modW * 0.95,
-                  height: modH * 0.95,
-                  depth: modD * 0.95,
-                }}
-                scaleMultiplier={WATCH_MODEL_SCALE}
+            {usesHolderShell && (
+              <HolderShell
+                centerX={mod.position[0]}
+                centerZ={mod.position[2]}
+                texture={holderTexture}
+                textureDensity={texDensity}
+                color={color}
+                materialProps={holderMaterialProps}
+                width={holderW}
+                depth={holderD}
+                baseHeight={holderBaseH}
+                wallThickness={holderWallT}
+                wallHeight={holderWallH}
+                baseY={holderBaseY}
+                wallY={holderWallY}
               />
-            ) : (
+            )}
+
+            {resolvedModule.renderType === 'model' && modelScene && (
+              <FittedModuleModel
+                modelScene={modelScene}
+                position={[mod.position[0], contentBaseY, mod.position[2]]}
+                targetSize={contentSize}
+                color={color}
+                textureRule={resolvedTextureRule}
+                textureMaps={textureMaps}
+              />
+            )}
+
+            {!definition && !modelScene && resolvedModule.renderType !== 'geometry' && (
               <Box
                 args={[modW, modH, modD]}
-                position={[mod.position[0], yPos, mod.position[2]]}
+                position={[mod.position[0], contentBaseY + modH / 2, mod.position[2]]}
               >
-                <meshStandardMaterial color={mod.color} roughness={1} metalness={0} />
+                <meshStandardMaterial color={resolvedModule.color} roughness={1} metalness={0} />
               </Box>
             )}
           </group>
@@ -438,6 +583,10 @@ const Tray = ({
   );
 };
 
-useGLTF.preload('/models/watch.glb');
+useGLTF.preload(MODEL_PATHS.ringStrokes);
+useGLTF.preload(MODEL_PATHS.holesOnly);
+useGLTF.preload(MODEL_PATHS.lipWithHoles);
+useGLTF.preload(MODEL_PATHS.lipNoHoles);
+useGLTF.preload(MODEL_PATHS.noLipNoHoles);
 
 export default Tray;

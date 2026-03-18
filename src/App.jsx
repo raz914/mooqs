@@ -67,6 +67,7 @@ function App() {
     moduleFitsInCell,
     isCellOccupied,
     placeModuleInCell,
+    removeModule,
     handleDragStart,
     handleDragEnd,
     setPlacedModules,
@@ -342,6 +343,8 @@ function App() {
               setShowModuleSelector={setShowModuleSelector}
               finish={finish}
               setFinish={setFinish}
+              placedModules={placedModules}
+              onRemoveModule={removeModule}
             />
           )}
         </div>
