@@ -46,7 +46,7 @@ const TrayDropHandler = ({
                     // Convert 3D point to cell coordinates
                     // Point is in scene units, tray is centered at origin
                     const absX = (point.x + trayW / 2) * 100; // Convert to mm from left edge
-                    const absZ = (point.z + trayD / 2) * 100; // Convert to mm from front edge
+                    const absZ = (trayD / 2 - point.z) * 100; // Convert to mm from front edge
 
                     // Find which cell
                     return cells.find(c =>
@@ -126,7 +126,7 @@ const TrayDropHandler = ({
                 const cellW = cell.width / 100;
                 const cellD = cell.depth / 100;
                 const cellX = ((cell.left + cell.right) / 2 - dimensions.width / 2) / 100;
-                const cellZ = ((cell.front + cell.back) / 2 - dimensions.depth / 2) / 100;
+                const cellZ = (dimensions.depth / 2 - (cell.front + cell.back) / 2) / 100;
 
                 const isHovered = hoveredCell?.key === cell.key;
                 const isOccupied = placedModules.some(m => m.cellKey === cell.key);
@@ -178,7 +178,7 @@ const TrayDropHandler = ({
                     position={[
                         ((hoveredCell.left + hoveredCell.right) / 2 - dimensions.width / 2) / 100,
                         draggedModule.height / 200,
-                        ((hoveredCell.front + hoveredCell.back) / 2 - dimensions.depth / 2) / 100
+                        (dimensions.depth / 2 - (hoveredCell.front + hoveredCell.back) / 2) / 100
                     ]}
                 >
                     <meshStandardMaterial

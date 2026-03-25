@@ -505,14 +505,17 @@ const Tray = ({
         const modW = resolvedModule.width / 100;
         const modD = resolvedModule.depth / 100;
         const modH = resolvedModule.height / 100;
-        const cellW = Math.max(modW, (resolvedModule.cellWidth || resolvedModule.width) / 100);
-        const cellD = Math.max(modD, (resolvedModule.cellDepth || resolvedModule.depth) / 100);
+        const modulePosition = resolvedModule.position || [0, 0, 0];
+        const liveCellWidth = resolvedModule.cellWidth ?? resolvedModule.width;
+        const liveCellDepth = resolvedModule.cellDepth ?? resolvedModule.depth;
+        const cellW = Math.max(modW, liveCellWidth / 100);
+        const cellD = Math.max(modD, liveCellDepth / 100);
         const holderInset = 0.01;
         const coverInset = 0.01;
         const trayTopY = h / 2;
         const coverLift = 0.002;
         const strokesPushDown = 0.5;
-        const isStrokesModule = mod.id === 'rings_4_strokes' || mod.id === 'rings_1_stroke';
+        const isStrokesModule = resolvedModule.id === 'rings_4_strokes' || resolvedModule.id === 'rings_1_stroke';
         const usesHolderShell = resolvedModule.renderType === 'geometry';
         const isCoverModule = resolvedModule.mountStyle === 'cover';
         const holderBaseH = Math.max(0.008, modH * 0.12);
@@ -541,8 +544,8 @@ const Tray = ({
           <group key={mod.instanceId}>
             {usesHolderShell && (
               <HolderShell
-                centerX={mod.position[0]}
-                centerZ={mod.position[2]}
+                centerX={modulePosition[0]}
+                centerZ={modulePosition[2]}
                 texture={holderTexture}
                 textureDensity={texDensity}
                 color={color}
@@ -560,7 +563,7 @@ const Tray = ({
             {resolvedModule.renderType === 'model' && modelScene && (
               <FittedModuleModel
                 modelScene={modelScene}
-                position={[mod.position[0], contentBaseY, mod.position[2]]}
+                position={[modulePosition[0], contentBaseY, modulePosition[2]]}
                 targetSize={contentSize}
                 color={color}
                 textureRule={resolvedTextureRule}
@@ -571,7 +574,7 @@ const Tray = ({
             {!definition && !modelScene && resolvedModule.renderType !== 'geometry' && (
               <Box
                 args={[modW, modH, modD]}
-                position={[mod.position[0], contentBaseY + modH / 2, mod.position[2]]}
+                position={[modulePosition[0], contentBaseY + modH / 2, modulePosition[2]]}
               >
                 <meshStandardMaterial color={resolvedModule.color} roughness={1} metalness={0} />
               </Box>

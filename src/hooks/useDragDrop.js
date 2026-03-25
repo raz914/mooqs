@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 const EPSILON = 1e-6;
 
@@ -55,6 +55,173 @@ const uniqueSortedBreakpoints = (values, min, max) => {
 const makeCellKey = (left, right, front, back) => {
     const f = (n) => Number.parseFloat(n.toFixed(3));
     return `cell-${f(front)}-${f(back)}-${f(left)}-${f(right)}`;
+};
+
+const getCellScenePosition = (cell, trayW, trayD) => ([
+    ((cell.left + cell.right) / 2 - trayW / 2) / 100,
+    0,
+    (trayD / 2 - (cell.front + cell.back) / 2) / 100,
+]);
+
+const getModuleAnchorRect = (module, trayW, trayD) => {
+    if (
+        Number.isFinite(module.cellLeft) &&
+        Number.isFinite(module.cellRight) &&
+        Number.isFinite(module.cellFront) &&
+        Number.isFinite(module.cellBack)
+    ) {
+        return {
+            left: module.cellLeft,
+            right: module.cellRight,
+            front: module.cellFront,
+            back: module.cellBack,
+        };
+    }
+
+    if (
+        !Array.isArray(module.position) ||
+        module.position.length < 3 ||
+        !Number.isFinite(trayW) ||
+        !Number.isFinite(trayD)
+    ) {
+        return null;
+    }
+
+    const centerX = Number(module.position[0]) * 100 + trayW / 2;
+    const centerZ = trayD / 2 - Number(module.position[2]) * 100;
+    const width = Number(module.cellWidth ?? module.width);
+    const depth = Number(module.cellDepth ?? module.depth);
+
+    if (!Number.isFinite(centerX) || !Number.isFinite(centerZ) || !Number.isFinite(width) || !Number.isFinite(depth)) {
+        return null;
+    }
+
+    return {
+        left: centerX - width / 2,
+        right: centerX + width / 2,
+        front: centerZ - depth / 2,
+        back: centerZ + depth / 2,
+    };
+};
+
+const getRectOverlapArea = (rectA, rectB) => {
+    if (!rectA || !rectB) return 0;
+
+    const overlapWidth = Math.min(rectA.right, rectB.right) - Math.max(rectA.left, rectB.left);
+    const overlapDepth = Math.min(rectA.back, rectB.back) - Math.max(rectA.front, rectB.front);
+
+    if (overlapWidth <= EPSILON || overlapDepth <= EPSILON) return 0;
+    return overlapWidth * overlapDepth;
+};
+
+const getBoundaryMatchCount = (rect, cell) => {
+    if (!rect || !cell) return 0;
+
+    let count = 0;
+    if (Math.abs(rect.left - cell.left) <= EPSILON) count += 1;
+    if (Math.abs(rect.right - cell.right) <= EPSILON) count += 1;
+    if (Math.abs(rect.front - cell.front) <= EPSILON) count += 1;
+    if (Math.abs(rect.back - cell.back) <= EPSILON) count += 1;
+    return count;
+};
+
+const findBestCellForModule = (module, cells, trayW, trayD) => {
+    if (!cells.length) return null;
+
+    const matchingCell = cells.find((cell) => cell.key === module.cellKey);
+    if (matchingCell) return matchingCell;
+
+    const anchorRect = getModuleAnchorRect(module, trayW, trayD);
+    if (!anchorRect) {
+        if (Number.isInteger(module.cellRow) && Number.isInteger(module.cellCol)) {
+            const matchingGridCell = cells.find(
+                (cell) => cell.row === module.cellRow && cell.col === module.cellCol
+            );
+
+            if (matchingGridCell) return matchingGridCell;
+        }
+
+        return cells[0];
+    }
+
+    const anchorCenterX = (anchorRect.left + anchorRect.right) / 2;
+    const anchorCenterZ = (anchorRect.front + anchorRect.back) / 2;
+
+    let bestCell = null;
+    let bestBoundaryMatches = -1;
+    let bestOverlap = 0;
+
+    for (const cell of cells) {
+        const boundaryMatches = getBoundaryMatchCount(anchorRect, cell);
+        const overlap = getRectOverlapArea(anchorRect, cell);
+
+        if (boundaryMatches > bestBoundaryMatches) {
+            bestBoundaryMatches = boundaryMatches;
+            bestOverlap = overlap;
+            bestCell = cell;
+            continue;
+        }
+
+        if (boundaryMatches === bestBoundaryMatches && overlap > bestOverlap + EPSILON) {
+            bestOverlap = overlap;
+            bestCell = cell;
+            continue;
+        }
+
+        if (boundaryMatches === bestBoundaryMatches && Math.abs(overlap - bestOverlap) <= EPSILON) {
+            const centerInside =
+                anchorCenterX >= cell.left - EPSILON &&
+                anchorCenterX <= cell.right + EPSILON &&
+                anchorCenterZ >= cell.front - EPSILON &&
+                anchorCenterZ <= cell.back + EPSILON;
+
+            if (centerInside) {
+                bestCell = cell;
+            }
+        }
+    }
+
+    if (bestCell) return bestCell;
+
+    return cells.find((cell) =>
+        anchorCenterX >= cell.left - EPSILON &&
+        anchorCenterX <= cell.right + EPSILON &&
+        anchorCenterZ >= cell.front - EPSILON &&
+        anchorCenterZ <= cell.back + EPSILON
+    ) || cells[0];
+};
+
+const attachModuleToCell = (module, cell, trayW, trayD) => ({
+    ...module,
+    cellKey: cell.key,
+    cellRow: Number.isInteger(module.cellRow) ? module.cellRow : cell.row,
+    cellCol: Number.isInteger(module.cellCol) ? module.cellCol : cell.col,
+    cellWidth: cell.width,
+    cellDepth: cell.depth,
+    cellLeft: cell.left,
+    cellRight: cell.right,
+    cellFront: cell.front,
+    cellBack: cell.back,
+    position: getCellScenePosition(cell, trayW, trayD),
+});
+
+const modulePlacementMatchesCell = (module, cell, trayW, trayD) => {
+    const nextPosition = getCellScenePosition(cell, trayW, trayD);
+
+    return (
+        module.cellKey === cell.key &&
+        Math.abs((module.cellWidth ?? 0) - cell.width) <= EPSILON &&
+        Math.abs((module.cellDepth ?? 0) - cell.depth) <= EPSILON &&
+        Math.abs((module.cellLeft ?? 0) - cell.left) <= EPSILON &&
+        Math.abs((module.cellRight ?? 0) - cell.right) <= EPSILON &&
+        Math.abs((module.cellFront ?? 0) - cell.front) <= EPSILON &&
+        Math.abs((module.cellBack ?? 0) - cell.back) <= EPSILON &&
+        Array.isArray(module.position) &&
+        module.position.length >= 3 &&
+        Math.abs(module.position[0] - nextPosition[0]) <= EPSILON &&
+        Math.abs(module.position[1] - nextPosition[1]) <= EPSILON &&
+        Math.abs(module.position[2] - nextPosition[2]) <= EPSILON
+    );
 };
 
 /**
@@ -247,23 +414,41 @@ export const useDragDrop = ({ dimensions, onModulePlaced, initialPlacedModules =
         return placedModules.some(m => m.cellKey === cellKey);
     }, [placedModules]);
 
+    useEffect(() => {
+        const trayW = dimensions.width;
+        const trayD = dimensions.depth;
+        const cells = getCells();
+
+        if (!cells.length || !trayW || !trayD) return;
+
+        setPlacedModules((prev) => {
+            let hasChanges = false;
+
+            const next = prev.map((module) => {
+                const targetCell = findBestCellForModule(module, cells, trayW, trayD);
+                if (!targetCell) return module;
+
+                if (modulePlacementMatchesCell(module, targetCell, trayW, trayD)) {
+                    return module;
+                }
+
+                hasChanges = true;
+                return attachModuleToCell(module, targetCell, trayW, trayD);
+            });
+
+            return hasChanges ? next : prev;
+        });
+    }, [dimensions.width, dimensions.depth, getCells]);
+
     // Place module in cell
     const placeModuleInCell = useCallback((module, cell) => {
         const trayW = dimensions.width;
         const trayD = dimensions.depth;
 
-        // Calculate center position in scene units
-        const cellCenterX = ((cell.left + cell.right) / 2 - trayW / 2) / 100;
-        const cellCenterZ = ((cell.front + cell.back) / 2 - trayD / 2) / 100;
-
-        const newModule = {
+        const newModule = attachModuleToCell({
             ...module,
             instanceId: Date.now(),
-            cellKey: cell.key,
-            cellWidth: cell.width,
-            cellDepth: cell.depth,
-            position: [cellCenterX, 0, cellCenterZ]
-        };
+        }, cell, trayW, trayD);
 
         setPlacedModules(prev => [...prev, newModule]);
         if (onModulePlaced) onModulePlaced(newModule);
